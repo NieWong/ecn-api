@@ -1,14 +1,138 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
-generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
-}
-
 datasource db {
   provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum Visibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum FileKind {
+  IMAGE
+  DOCUMENT
+  OTHER
+}
+
+model User {
+  id       String  @id @default(cuid())
+  email    String  @unique
+  name     String?
+  password String
+  role     Role    @default(USER)
+  isActive Boolean @default(true)
+
+  posts Post[]
+  files File[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([role])
+}
+
+model Post {
+  id          String     @id @default(cuid())
+  title       String
+  slug        String     @unique
+  summary     String?
+  contentJson Json
+  contentHtml String?
+  status      PostStatus @default(DRAFT)
+  visibility  Visibility @default(PUBLIC)
+
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id])
+
+  coverFileId String?
+  coverFile   File?   @relation("PostCoverFile", fields: [coverFileId], references: [id], onDelete: SetNull)
+
+  categories PostCategory[]
+  images     PostImage[]
+
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([authorId])
+  @@index([status])
+  @@index([visibility])
+  @@index([createdAt])
+}
+
+model Category {
+  id   String @id @default(cuid())
+  name String
+  slug String @unique
+
+  posts PostCategory[]
+
+  createdAt DateTime @default(now())
+
+  @@index([name])
+}
+
+model PostCategory {
+  postId     String
+  categoryId String
+
+  post     Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([postId, categoryId])
+  @@index([categoryId])
+}
+
+model File {
+  id String @id @default(cuid())
+
+  ownerId String
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  kind       FileKind   @default(OTHER)
+  visibility Visibility @default(PUBLIC)
+
+  originalName String
+  mimeType     String
+  size         Int
+  storageKey   String @unique
+
+  width  Int?
+  height Int?
+
+  postImages PostImage[]
+  coverFor   Post[]      @relation("PostCoverFile")
+
+  createdAt DateTime @default(now())
+
+  @@index([ownerId])
+  @@index([visibility])
+  @@index([kind])
+}
+
+model PostImage {
+  postId String
+  fileId String
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  file File @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  sort Int @default(0)
+
+  @@id([postId, fileId])
+  @@index([fileId])
 }

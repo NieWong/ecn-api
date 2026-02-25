@@ -1,0 +1,7 @@
+prisma migrate dev → create/update tables from schema
+
+prisma db push → quick push schema without migrations (dev-only)
+
+prisma db pull → only if DB already has tables
+
+prisma studio → view/edit DB data
