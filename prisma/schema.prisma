@@ -29,12 +29,26 @@ enum FileKind {
 }
 
 model User {
-  id       String  @id @default(cuid())
+  id       String  @id @default(uuid())
   email    String  @unique
   name     String?
-  password String
+  password String?
   role     Role    @default(USER)
-  isActive Boolean @default(true)
+  isActive Boolean @default(false)
+
+  // Profile fields
+  profilePictureId String?
+  profilePicture   File?   @relation("UserProfilePicture", fields: [profilePictureId], references: [id], onDelete: SetNull)
+  
+  cvFileId String?
+  cvFile   File?   @relation("UserCV", fields: [cvFileId], references: [id], onDelete: SetNull)
+  
+  aboutMe   String?
+  facebook  String?
+  twitter   String?
+  linkedin  String?
+  phone     String?
+  website   String?
 
   posts Post[]
   files File[]
@@ -43,10 +57,11 @@ model User {
   updatedAt DateTime @updatedAt
 
   @@index([role])
+  @@index([isActive])
 }
 
 model Post {
-  id          String     @id @default(cuid())
+  id          String     @id @default(uuid())
   title       String
   slug        String     @unique
   summary     String?
@@ -75,7 +90,7 @@ model Post {
 }
 
 model Category {
-  id   String @id @default(cuid())
+  id   String @id @default(uuid())
   name String
   slug String @unique
 
@@ -98,7 +113,7 @@ model PostCategory {
 }
 
 model File {
-  id String @id @default(cuid())
+  id String @id @default(uuid())
 
   ownerId String
   owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
@@ -114,8 +129,10 @@ model File {
   width  Int?
   height Int?
 
-  postImages PostImage[]
-  coverFor   Post[]      @relation("PostCoverFile")
+  postImages       PostImage[]
+  coverFor         Post[]      @relation("PostCoverFile")
+  userProfileFor   User[]      @relation("UserProfilePicture")
+  userCVFor        User[]      @relation("UserCV")
 
   createdAt DateTime @default(now())
 

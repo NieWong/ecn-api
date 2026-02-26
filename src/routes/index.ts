@@ -13,6 +13,6 @@ router.use("/users", userRoutes);
 router.use("/posts", postRoutes);
 router.use("/categories", categoryRoutes);
 router.use("/files", fileRoutes);
-router.use("/posts", postImageRoutes); // /posts/:postId/images
+router.use("/posts", postImageRoutes);
 
 export default router;

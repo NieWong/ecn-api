@@ -23,6 +23,7 @@ const seed = async () => {
       name: "Admin",
       password: passwordHash,
       role: "ADMIN",
+      isActive: true,
     },
   });
 
@@ -34,6 +35,7 @@ const seed = async () => {
       name: "Demo User",
       password: passwordHash,
       role: "USER",
+      isActive: true,
     },
   });
 
