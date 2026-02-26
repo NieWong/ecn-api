@@ -40,9 +40,9 @@ const seed = async () => {
   });
 
   const categories = [
-    { name: "Engineering", slug: "engineering" },
-    { name: "Design", slug: "design" },
-    { name: "Product", slug: "product" },
+    { name: "category 1", slug: "category_1" },
+    { name: "category 2", slug: "category_2" },
+    { name: "category 3", slug: "category_3" },
   ];
 
   for (const category of categories) {
