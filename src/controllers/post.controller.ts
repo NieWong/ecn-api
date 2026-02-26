@@ -15,6 +15,10 @@ import { AppError } from "../utils/errors";
 export const listPosts: RequestHandler[] = [
   validateQuery(listPostsQuerySchema),
   async (req, res, next) => {
+    console.log('listPosts controller - Starting...');
+    console.log('listPosts controller - Query params:', req.query);
+    console.log('listPosts controller - User:', req.user ? { id: req.user.id, role: req.user.role } : 'Not authenticated');
+    
     try {
       const query = req.query as any;
       const filters: Record<string, unknown>[] = [];
@@ -51,6 +55,8 @@ export const listPosts: RequestHandler[] = [
         });
       }
 
+      console.log('listPosts controller - Filters:', JSON.stringify(filters, null, 2));
+
       const orderBy: Prisma.PostOrderByWithRelationInput = (() => {
         switch (query.sort) {
           case "CREATED_AT_ASC":
@@ -64,15 +70,48 @@ export const listPosts: RequestHandler[] = [
         }
       })();
 
+      console.log('listPosts controller - OrderBy:', orderBy);
+      console.log('listPosts controller - About to query database...');
+
+      // Parse numeric parameters (they come as strings from query)
+      const take = query.take ? parseInt(query.take, 10) : undefined;
+      const skip = query.skip ? parseInt(query.skip, 10) : undefined;
+
       const posts = await prisma.post.findMany({
         where: filters.length ? { AND: filters } : undefined,
+        include: {
+          author: {
+            select: {
+              id: true,
+              email: true,
+              name: true,
+              profilePicture: true,
+            },
+          },
+          coverFile: true,
+          categories: {
+            include: {
+              category: true,
+            },
+          },
+        },
         orderBy,
-        skip: query.skip ?? undefined,
-        take: query.take ?? undefined,
+        skip,
+        take,
       });
 
-      res.status(200).json(posts);
+      console.log(`listPosts controller - Found ${posts.length} posts`);
+
+      // Transform categories to match frontend expectation
+      const transformedPosts = posts.map(post => ({
+        ...post,
+        categories: post.categories.map(pc => pc.category),
+      }));
+
+      console.log('listPosts controller - Sending response');
+      res.status(200).json(transformedPosts);
     } catch (error) {
+      console.error('listPosts controller - Error occurred:', error);
       next(error);
     }
   },
@@ -80,14 +119,39 @@ export const listPosts: RequestHandler[] = [
 
 export const getPost: RequestHandler = async (req, res, next) => {
   try {
-    const post = await prisma.post.findUnique({ where: { id: String(req.params.id) } });
+    const post = await prisma.post.findUnique({ 
+      where: { id: String(req.params.id) },
+      include: {
+        author: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            profilePicture: true,
+          },
+        },
+        coverFile: true,
+        categories: {
+          include: {
+            category: true,
+          },
+        },
+      },
+    });
+    
     if (!post) {
       throw new AppError("Post not found", 404);
     }
 
+    // Transform categories to match frontend expectation
+    const transformedPost = {
+      ...post,
+      categories: post.categories.map(pc => pc.category),
+    };
+
     // Access control
     if (post.visibility === "PUBLIC") {
-      return res.status(200).json(post);
+      return res.status(200).json(transformedPost);
     }
     if (!req.user) {
       throw new AppError("Forbidden", 403);
@@ -96,7 +160,7 @@ export const getPost: RequestHandler = async (req, res, next) => {
       throw new AppError("Forbidden", 403);
     }
 
-    res.status(200).json(post);
+    res.status(200).json(transformedPost);
   } catch (error) {
     next(error);
   }
