@@ -15,6 +15,7 @@ router.patch("/profile/:id", ...(userController.updateProfile as any));
 router.patch("/profile", ...(userController.updateProfile as any)); // Update own profile
 
 // Public profile route (no auth required)
+router.get("/public", userController.listPublicProfiles);
 router.get("/public/:id", userController.getPublicProfile);
 
 export default router;

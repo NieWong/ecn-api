@@ -35,6 +35,7 @@ export const postRepo = {
     visibility?: "PUBLIC" | "PRIVATE";
     authorId: string;
     categoryIds?: string[];
+    coverImagePath?: string | null;
   }) => {
     return prisma.post.create({
       data: {
@@ -46,6 +47,7 @@ export const postRepo = {
         status: data.status ?? "DRAFT",
         visibility: data.visibility ?? "PUBLIC",
         authorId: data.authorId,
+        coverImagePath: data.coverImagePath ?? null,
         categories: data.categoryIds
           ? {
               createMany: {
@@ -66,6 +68,7 @@ export const postRepo = {
     status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
     visibility?: "PUBLIC" | "PRIVATE";
     coverFileId?: string | null;
+    coverImagePath?: string | null;
   }) => {
     const updateData: Prisma.PostUpdateInput = {
       title: data.title,
@@ -75,6 +78,7 @@ export const postRepo = {
       contentHtml: data.contentHtml ?? undefined,
       status: data.status,
       visibility: data.visibility,
+      coverImagePath: data.coverImagePath ?? undefined,
     };
 
     if (data.coverFileId !== undefined) {

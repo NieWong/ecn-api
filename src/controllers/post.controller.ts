@@ -119,8 +119,13 @@ export const listPosts: RequestHandler[] = [
 
 export const getPost: RequestHandler = async (req, res, next) => {
   try {
-    const post = await prisma.post.findUnique({ 
-      where: { id: String(req.params.id) },
+    const identifier = String(req.params.id);
+    
+    // Check if it's a UUID or a slug
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier);
+    
+    const post = await prisma.post.findFirst({ 
+      where: isUuid ? { id: identifier } : { slug: identifier },
       include: {
         author: {
           select: {
@@ -128,6 +133,7 @@ export const getPost: RequestHandler = async (req, res, next) => {
             email: true,
             name: true,
             profilePicture: true,
+            aboutMe: true,
           },
         },
         coverFile: true,

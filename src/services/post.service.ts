@@ -33,6 +33,7 @@ export const postService = {
     visibility?: "PUBLIC" | "PRIVATE";
     authorId: string;
     categoryIds?: string[];
+    coverImagePath?: string | null;
   }) => {
     const slug = data.slug ? toSlug(data.slug) : toSlug(data.title);
     const existing = await postRepo.findBySlug(slug);
@@ -51,6 +52,7 @@ export const postService = {
     contentHtml?: string | null;
     status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
     visibility?: "PUBLIC" | "PRIVATE";
+    coverImagePath?: string | null;
     },
     actor: AuthUser
   ) => {

@@ -39,9 +39,11 @@ model User {
   // Profile fields
   profilePictureId String?
   profilePicture   File?   @relation("UserProfilePicture", fields: [profilePictureId], references: [id], onDelete: SetNull)
+  profilePicturePath String? // Local path for profile picture stored in frontend
   
   cvFileId String?
   cvFile   File?   @relation("UserCV", fields: [cvFileId], references: [id], onDelete: SetNull)
+  cvFilePath String? // Local path for CV stored in frontend
   
   aboutMe   String?
   facebook  String?
@@ -75,6 +77,7 @@ model Post {
 
   coverFileId String?
   coverFile   File?   @relation("PostCoverFile", fields: [coverFileId], references: [id], onDelete: SetNull)
+  coverImagePath String? // Local path for cover image stored in frontend
 
   categories PostCategory[]
   images     PostImage[]

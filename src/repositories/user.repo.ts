@@ -38,7 +38,9 @@ export const userRepo = {
     isActive: boolean;
     role: string;
     profilePictureId: string | null;
+    profilePicturePath: string | null;
     cvFileId: string | null;
+    cvFilePath: string | null;
     aboutMe: string | null;
     facebook: string | null;
     twitter: string | null;

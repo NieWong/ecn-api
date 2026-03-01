@@ -9,7 +9,9 @@ export const updateProfileSchema = z.object({
   phone: z.string().optional(),
   website: z.string().url().optional().or(z.literal("")),
   profilePictureId: z.string().uuid().optional().nullable(),
+  profilePicturePath: z.string().optional().nullable(),
   cvFileId: z.string().uuid().optional().nullable(),
+  cvFilePath: z.string().optional().nullable(),
 });
 
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;

@@ -18,6 +18,7 @@ export const createPostSchema = z.object({
   status: postStatusSchema.optional(),
   visibility: visibilitySchema.optional(),
   categoryIds: z.array(z.string()).optional(),
+  coverImagePath: z.string().optional().nullable(),
 });
 
 export const updatePostSchema = z.object({
@@ -28,6 +29,7 @@ export const updatePostSchema = z.object({
   contentHtml: z.string().optional().nullable(),
   status: postStatusSchema.optional(),
   visibility: visibilitySchema.optional(),
+  coverImagePath: z.string().optional().nullable(),
 });
 
 export const listPostsQuerySchema = z.object({

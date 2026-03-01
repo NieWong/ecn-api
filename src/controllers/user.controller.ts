@@ -93,3 +93,12 @@ export const getPublicProfile: RequestHandler = async (req: any, res: any, next:
     next(error);
   }
 };
+
+export const listPublicProfiles: RequestHandler = async (req: any, res: any, next: any) => {
+  try {
+    const users = await userService.listPublicProfiles();
+    res.status(200).json(users);
+  } catch (error) {
+    next(error);
+  }
+};

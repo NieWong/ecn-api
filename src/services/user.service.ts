@@ -70,7 +70,9 @@ export const userService = {
     phone?: string;
     website?: string;
     profilePictureId?: string;
+    profilePicturePath?: string | null;
     cvFileId?: string;
+    cvFilePath?: string | null;
   }, actor: AuthUser) => {
     if (actor.id !== userId && actor.role !== "ADMIN") {
       throw new AppError("Forbidden", 403);
@@ -99,7 +101,27 @@ export const userService = {
       linkedin: user.linkedin,
       website: user.website,
       profilePicture: user.profilePicture,
+      profilePicturePath: user.profilePicturePath,
       cvFile: user.cvFile,
+      cvFilePath: user.cvFilePath,
     };
+  },
+
+  // Public: List all active users' public profiles
+  listPublicProfiles: async () => {
+    const users = await userRepo.list({ isActive: true });
+    return users.map((user) => ({
+      id: user.id,
+      name: user.name,
+      aboutMe: user.aboutMe,
+      facebook: user.facebook,
+      twitter: user.twitter,
+      linkedin: user.linkedin,
+      website: user.website,
+      profilePicture: user.profilePicture,
+      profilePicturePath: user.profilePicturePath,
+      cvFile: user.cvFile,
+      cvFilePath: user.cvFilePath,
+    }));
   },
 };

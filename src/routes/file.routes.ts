@@ -5,7 +5,6 @@ const router = Router();
 
 router.get("/", fileController.listFiles);
 router.get("/:id", fileController.getFile);
-// File upload handled in app.ts due to multer requirement
 // router.post("/", ...fileController.uploadFile);
 router.delete("/:id", ...(fileController.deleteFile as any));
 
