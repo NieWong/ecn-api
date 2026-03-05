@@ -37,6 +37,7 @@ export const userRepo = {
     password: string | null;
     isActive: boolean;
     role: string;
+    membershipLevel: string;
     profilePictureId: string | null;
     profilePicturePath: string | null;
     cvFileId: string | null;
@@ -50,7 +51,7 @@ export const userRepo = {
   }>) => {
     return prisma.user.update({ 
       where: { id }, 
-      data,
+      data: data as any,
       include: {
         profilePicture: true,
         cvFile: true,

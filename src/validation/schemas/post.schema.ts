@@ -30,6 +30,7 @@ export const updatePostSchema = z.object({
   status: postStatusSchema.optional(),
   visibility: visibilitySchema.optional(),
   coverImagePath: z.string().optional().nullable(),
+  categoryIds: z.array(z.string()).optional(),
 });
 
 export const listPostsQuerySchema = z.object({

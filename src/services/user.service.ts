@@ -1,4 +1,5 @@
 import { userRepo } from "../repositories/user.repo";
+import { notificationService } from "./notification.service";
 import type { AuthUser } from "../types/auth";
 import { AppError } from "../utils/errors";
 
@@ -34,7 +35,12 @@ export const userService = {
       throw new AppError("User already approved", 400);
     }
 
-    return userRepo.update(userId, { isActive: true });
+    const updatedUser = await userRepo.update(userId, { isActive: true });
+    
+    // Notify user about approval
+    await notificationService.notifyUserApproved(userId);
+    
+    return updatedUser;
   },
 
   // Admin: Deactivate user
@@ -44,6 +50,62 @@ export const userService = {
     }
     
     return userRepo.update(userId, { isActive: false });
+  },
+  
+  // Admin: Update user's membership level
+  updateMembershipLevel: async (userId: string, membershipLevel: string, actor: AuthUser) => {
+    if (actor.role !== "ADMIN") {
+      throw new AppError("Forbidden", 403);
+    }
+    
+    const validLevels = ["REGULAR_USER", "MEMBER", "HONORARY_MEMBER", "BOARD_MEMBER", "ADMIN_MEMBER"];
+    if (!validLevels.includes(membershipLevel)) {
+      throw new AppError("Invalid membership level", 400);
+    }
+    
+    const user = await userRepo.findById(userId);
+    if (!user) {
+      throw new AppError("User not found", 404);
+    }
+    
+    const oldLevel = user.membershipLevel;
+    
+    // Update both membershipLevel and role if becoming admin
+    const updateData: any = { membershipLevel };
+    if (membershipLevel === "ADMIN_MEMBER") {
+      updateData.role = "ADMIN";
+    } else if (oldLevel === "ADMIN_MEMBER" && membershipLevel !== "ADMIN_MEMBER") {
+      // Demoting from admin-member
+      updateData.role = "USER";
+    }
+    
+    const updatedUser = await userRepo.update(userId, updateData);
+    
+    // Notify user about membership change
+    if (oldLevel !== membershipLevel) {
+      await notificationService.notifyMembershipChanged(userId, oldLevel, membershipLevel);
+    }
+    
+    return updatedUser;
+  },
+  
+  // Admin: Update user's role
+  updateRole: async (userId: string, role: string, actor: AuthUser) => {
+    if (actor.role !== "ADMIN") {
+      throw new AppError("Forbidden", 403);
+    }
+    
+    const validRoles = ["ADMIN", "USER"];
+    if (!validRoles.includes(role)) {
+      throw new AppError("Invalid role", 400);
+    }
+    
+    const user = await userRepo.findById(userId);
+    if (!user) {
+      throw new AppError("User not found", 404);
+    }
+    
+    return userRepo.update(userId, { role });
   },
 
   // User: Get their own profile

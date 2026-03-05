@@ -46,14 +46,25 @@ export const listPosts: RequestHandler[] = [
         });
       }
 
+      // Public published feed must always be approved (including when admin is logged in)
+      if (query.visibility === "PUBLIC" && query.status === "PUBLISHED") {
+        filters.push({ isApproved: true });
+      }
+
       // Access control
       if (!req.user) {
-        filters.push({ visibility: "PUBLIC" });
+        // Non-authenticated users: only see public approved posts
+        filters.push({ visibility: "PUBLIC", isApproved: true });
       } else if (req.user.role !== "ADMIN") {
+        // Authenticated non-admin: see public approved posts OR their own posts (approved or pending)
         filters.push({
-          OR: [{ visibility: "PUBLIC" }, { authorId: req.user.id }],
+          OR: [
+            { visibility: "PUBLIC", isApproved: true },
+            { authorId: req.user.id },
+          ],
         });
       }
+      // Admins see everything (no approval filter needed)
 
       console.log('listPosts controller - Filters:', JSON.stringify(filters, null, 2));
 
@@ -245,3 +256,51 @@ export const clearPostCover: RequestHandler = [
     }
   },
 ] as any;
+
+// Admin: List posts pending approval
+export const listPendingApproval: RequestHandler[] = [
+  requireAuth,
+  async (req: any, res: any, next: any) => {
+    try {
+      const posts = await postService.listPendingApproval(req.user!);
+      // Transform categories to match frontend expectation
+      const transformedPosts = posts.map((post: any) => ({
+        ...post,
+        categories: post.categories.map((pc: any) => pc.category),
+      }));
+      res.status(200).json(transformedPosts);
+    } catch (error) {
+      next(error);
+    }
+  },
+];
+
+// Admin: Approve a post
+export const approvePost: RequestHandler[] = [
+  requireAuth,
+  async (req: any, res: any, next: any) => {
+    try {
+      const post = await postService.approve(String(req.params.id), req.user!);
+      res.status(200).json(post);
+    } catch (error) {
+      next(error);
+    }
+  },
+];
+
+// Admin: Reject a post
+export const rejectPost: RequestHandler[] = [
+  requireAuth,
+  async (req: any, res: any, next: any) => {
+    try {
+      const { reason } = req.body;
+      if (!reason || typeof reason !== 'string') {
+        throw new AppError("Reason is required", 400);
+      }
+      const post = await postService.reject(String(req.params.id), reason, req.user!);
+      res.status(200).json(post);
+    } catch (error) {
+      next(error);
+    }
+  },
+];

@@ -102,3 +102,43 @@ export const listPublicProfiles: RequestHandler = async (req: any, res: any, nex
     next(error);
   }
 };
+
+// Admin: Update user's membership level
+export const updateMembershipLevel: RequestHandler[] = [
+  requireAuth,
+  requireRole("ADMIN"),
+  async (req: any, res: any, next: any) => {
+    try {
+      const { membershipLevel } = req.body;
+      if (!membershipLevel) {
+        return res.status(400).json({ error: "membershipLevel is required" });
+      }
+      const user = await userService.updateMembershipLevel(
+        req.params.id,
+        membershipLevel,
+        req.user
+      );
+      res.status(200).json(user);
+    } catch (error) {
+      next(error);
+    }
+  },
+];
+
+// Admin: Update user's role
+export const updateUserRole: RequestHandler[] = [
+  requireAuth,
+  requireRole("ADMIN"),
+  async (req: any, res: any, next: any) => {
+    try {
+      const { role } = req.body;
+      if (!role) {
+        return res.status(400).json({ error: "role is required" });
+      }
+      const user = await userService.updateRole(req.params.id, role, req.user);
+      res.status(200).json(user);
+    } catch (error) {
+      next(error);
+    }
+  },
+];

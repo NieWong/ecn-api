@@ -24,8 +24,6 @@ export const validateQuery = <T extends z.ZodTypeAny>(
 ): RequestHandler => {
   return (req, _res, next) => {
     try {
-      // Don't try to reassign req.query (it's read-only)
-      // Just validate and let the controller use the original query
       schema.parse(req.query);
       next();
     } catch (error) {

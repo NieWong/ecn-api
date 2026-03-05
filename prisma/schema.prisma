@@ -11,10 +11,28 @@ enum Role {
   USER
 }
 
+enum MembershipLevel {
+  REGULAR_USER      // энгийн хэрэглэгч
+  MEMBER            // Гишүүн
+  HONORARY_MEMBER   // Хүндэт Гишүүн
+  BOARD_MEMBER      // Удирдах зөвлөлийн Гишүүн
+  ADMIN_MEMBER      // Admin
+}
+
 enum PostStatus {
   DRAFT
   PUBLISHED
   ARCHIVED
+}
+
+enum NotificationType {
+  ARTICLE_SUBMITTED      // When user submits article for review
+  ARTICLE_APPROVED       // When admin approves article
+  ARTICLE_REJECTED       // When admin rejects article
+  ARTICLE_COMMENTED      // When admin comments on article
+  MEMBERSHIP_CHANGED     // When admin changes user membership level
+  USER_APPROVED          // When admin approves user registration
+  SYSTEM                 // System notifications
 }
 
 enum Visibility {
@@ -35,6 +53,7 @@ model User {
   password String?
   role     Role    @default(USER)
   isActive Boolean @default(false)
+  membershipLevel MembershipLevel @default(REGULAR_USER)
 
   // Profile fields
   profilePictureId String?
@@ -54,12 +73,15 @@ model User {
 
   posts Post[]
   files File[]
+  notifications Notification[]
+  approvedPosts Post[] @relation("PostApprovedBy")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([role])
   @@index([isActive])
+  @@index([membershipLevel])
 }
 
 model Post {
@@ -71,6 +93,13 @@ model Post {
   contentHtml String?
   status      PostStatus @default(DRAFT)
   visibility  Visibility @default(PUBLIC)
+  
+  // Approval workflow
+  isApproved    Boolean   @default(false)
+  approvedAt    DateTime?
+  approvedById  String?
+  approvedBy    User?     @relation("PostApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+  adminComment  String?   // Admin can leave feedback for author
 
   authorId String
   author   User   @relation(fields: [authorId], references: [id])
@@ -90,6 +119,7 @@ model Post {
   @@index([status])
   @@index([visibility])
   @@index([createdAt])
+  @@index([isApproved])
 }
 
 model Category {
@@ -155,4 +185,28 @@ model PostImage {
 
   @@id([postId, fileId])
   @@index([fileId])
+}
+
+model Notification {
+  id          String           @id @default(uuid())
+  type        NotificationType
+  title       String
+  message     String
+  isRead      Boolean          @default(false)
+  
+  // Related entities (optional)
+  postId      String?
+  
+  // Recipient
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Metadata (JSON for flexible additional data)
+  metadata    Json?
+  
+  createdAt   DateTime         @default(now())
+  
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
 }
