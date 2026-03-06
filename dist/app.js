@@ -42,6 +42,7 @@ const cors_1 = __importDefault(require("cors"));
 const helmet_1 = __importDefault(require("helmet"));
 const morgan_1 = __importDefault(require("morgan"));
 const multer_1 = __importDefault(require("multer"));
+const path_1 = __importDefault(require("path"));
 const auth_1 = require("./middleware/auth");
 const notFound_1 = require("./middleware/notFound");
 const errorHandler_1 = require("./middleware/errorHandler");
@@ -63,6 +64,8 @@ const createApp = async () => {
     app.use(express_1.default.json({ limit: "1mb" }));
     app.use(express_1.default.urlencoded({ extended: true }));
     app.use(auth_1.authenticate);
+    // Serve uploaded files statically
+    app.use("/uploads", express_1.default.static(path_1.default.resolve(env_1.env.uploadDir)));
     app.get("/health", (_req, res) => {
         res.status(200).json({ status: "ok" });
     });

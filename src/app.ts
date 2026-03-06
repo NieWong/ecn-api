@@ -3,6 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import multer from "multer";
+import path from "path";
 
 import { authenticate } from "./middleware/auth";
 import { notFound } from "./middleware/notFound";
@@ -29,6 +30,9 @@ export const createApp = async () => {
   app.use(express.urlencoded({ extended: true }));
 
   app.use(authenticate);
+
+  // Serve uploaded files statically
+  app.use("/uploads", express.static(path.resolve(env.uploadDir)));
 
   app.get("/health", (_req, res) => {
     res.status(200).json({ status: "ok" });
