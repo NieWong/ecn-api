@@ -12,7 +12,7 @@ exports.postSortSchema = zod_1.z.enum([
 ]);
 exports.createPostSchema = zod_1.z.object({
     title: zod_1.z.string().min(1),
-    slug: zod_1.z.string().optional(),
+    slug: zod_1.z.string().trim().min(1).optional(),
     summary: zod_1.z.string().optional(),
     contentJson: zod_1.z.record(zod_1.z.string(), zod_1.z.unknown()),
     contentHtml: zod_1.z.string().optional(),
@@ -23,7 +23,7 @@ exports.createPostSchema = zod_1.z.object({
 });
 exports.updatePostSchema = zod_1.z.object({
     title: zod_1.z.string().min(1).optional(),
-    slug: zod_1.z.string().optional(),
+    slug: zod_1.z.string().trim().min(1).optional(),
     summary: zod_1.z.string().optional().nullable(),
     contentJson: zod_1.z.record(zod_1.z.string(), zod_1.z.unknown()).optional(),
     contentHtml: zod_1.z.string().optional().nullable(),

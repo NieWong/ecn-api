@@ -46,7 +46,9 @@ export const postService = {
     categoryIds?: string[];
     coverImagePath?: string | null;
   }) => {
-    const slug = data.slug ? toSlug(data.slug) : toSlug(data.title);
+    const generatedFromTitle = toSlug(data.title);
+    const requestedSlug = data.slug ? toSlug(data.slug) : "";
+    const slug = requestedSlug || generatedFromTitle || `post-${Date.now()}`;
     const existing = await postRepo.findBySlug(slug);
     if (existing) {
       throw new AppError("Slug already exists", 409);
@@ -92,8 +94,9 @@ export const postService = {
     }
     assertPostAccess(post, actor);
 
-    if (data.slug) {
-      data.slug = toSlug(data.slug);
+    if (data.slug !== undefined) {
+      const normalizedSlug = toSlug(data.slug);
+      data.slug = normalizedSlug || toSlug(data.title ?? post.title) || post.slug || `post-${post.id}`;
       const existing = await postRepo.findBySlug(data.slug);
       if (existing && existing.id !== id) {
         throw new AppError("Slug already exists", 409);

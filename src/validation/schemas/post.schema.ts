@@ -11,7 +11,7 @@ export const postSortSchema = z.enum([
 
 export const createPostSchema = z.object({
   title: z.string().min(1),
-  slug: z.string().optional(),
+  slug: z.string().trim().min(1).optional(),
   summary: z.string().optional(),
   contentJson: z.record(z.string(), z.unknown()),
   contentHtml: z.string().optional(),
@@ -23,7 +23,7 @@ export const createPostSchema = z.object({
 
 export const updatePostSchema = z.object({
   title: z.string().min(1).optional(),
-  slug: z.string().optional(),
+  slug: z.string().trim().min(1).optional(),
   summary: z.string().optional().nullable(),
   contentJson: z.record(z.string(), z.unknown()).optional(),
   contentHtml: z.string().optional().nullable(),

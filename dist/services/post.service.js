@@ -32,7 +32,9 @@ exports.postService = {
         return post;
     },
     create: async (data) => {
-        const slug = data.slug ? (0, slug_1.toSlug)(data.slug) : (0, slug_1.toSlug)(data.title);
+        const generatedFromTitle = (0, slug_1.toSlug)(data.title);
+        const requestedSlug = data.slug ? (0, slug_1.toSlug)(data.slug) : "";
+        const slug = requestedSlug || generatedFromTitle || `post-${Date.now()}`;
         const existing = await post_repo_1.postRepo.findBySlug(slug);
         if (existing) {
             throw new errors_1.AppError("Slug already exists", 409);
@@ -53,8 +55,9 @@ exports.postService = {
             throw new errors_1.AppError("Post not found", 404);
         }
         assertPostAccess(post, actor);
-        if (data.slug) {
-            data.slug = (0, slug_1.toSlug)(data.slug);
+        if (data.slug !== undefined) {
+            const normalizedSlug = (0, slug_1.toSlug)(data.slug);
+            data.slug = normalizedSlug || (0, slug_1.toSlug)(data.title ?? post.title) || post.slug || `post-${post.id}`;
             const existing = await post_repo_1.postRepo.findBySlug(data.slug);
             if (existing && existing.id !== id) {
                 throw new errors_1.AppError("Slug already exists", 409);
