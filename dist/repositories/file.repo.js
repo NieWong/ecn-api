@@ -12,7 +12,7 @@ exports.fileRepo = {
             orderBy: args.orderBy,
             skip: args.skip,
             take: args.take,
-        });
+        }); 
     },
     create: (data) => {
         return prisma_1.prisma.file.create({ data });
