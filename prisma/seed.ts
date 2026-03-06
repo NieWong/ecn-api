@@ -13,7 +13,7 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 const seed = async () => {
-  const passwordHash = await bcrypt.hash("ChangeMe123!", 10);
+  const passwordHash = await bcrypt.hash("Admin123!", 10);
 
   const admin = await prisma.user.upsert({
     where: { email: "admin@ecn.local" },
