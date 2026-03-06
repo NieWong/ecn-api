@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateUserRole = exports.updateMembershipLevel = exports.listPublicProfiles = exports.getPublicProfile = exports.updateProfile = exports.getProfile = exports.deactivateUser = exports.approveUser = exports.listPendingRegistrations = exports.listUsers = void 0;
+exports.updateUserRole = exports.updateMembershipLevel = exports.listPublicProfiles = exports.getPublicProfile = exports.updateProfile = exports.getProfile = exports.deleteUser = exports.deactivateUser = exports.approveUser = exports.listPendingRegistrations = exports.listUsers = void 0;
 const user_service_1 = require("../services/user.service");
 const auth_1 = require("../middleware/auth");
 const middleware_1 = require("../validation/middleware");
@@ -53,6 +53,19 @@ exports.deactivateUser = [
         try {
             const user = await user_service_1.userService.deactivateUser(req.params.id, req.user);
             res.status(200).json(user);
+        }
+        catch (error) {
+            next(error);
+        }
+    },
+];
+exports.deleteUser = [
+    auth_1.requireAuth,
+    (0, auth_1.requireRole)("ADMIN"),
+    async (req, res, next) => {
+        try {
+            await user_service_1.userService.deleteUser(req.params.id, req.user);
+            res.status(204).send();
         }
         catch (error) {
             next(error);

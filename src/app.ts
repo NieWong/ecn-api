@@ -33,8 +33,23 @@ export const createApp = async () => {
 
   app.use(authenticate);
 
-  // Serve uploaded files statically
-  app.use("/uploads", express.static(path.resolve(env.uploadDir)));
+  // Serve uploaded files statically (allow embedding for CV preview iframe)
+  app.use(
+    "/uploads",
+    (_req, res, next) => {
+      res.removeHeader("X-Frame-Options");
+      res.setHeader(
+        "Content-Security-Policy",
+        "frame-ancestors 'self' https://ecnclub.mn https://www.ecnclub.mn https://ecn-web.vercel.app http://localhost:3000"
+      );
+      next();
+    },
+    express.static(path.resolve(env.uploadDir), {
+      setHeaders: (res) => {
+        res.removeHeader("X-Frame-Options");
+      },
+    })
+  );
 
   app.get("/health", (_req, res) => {
     res.status(200).json({ status: "ok" });

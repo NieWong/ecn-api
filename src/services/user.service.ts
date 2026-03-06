@@ -51,6 +51,30 @@ export const userService = {
     
     return userRepo.update(userId, { isActive: false });
   },
+
+  // Admin: Delete user
+  deleteUser: async (userId: string, actor: AuthUser) => {
+    if (actor.role !== "ADMIN") {
+      throw new AppError("Forbidden", 403);
+    }
+
+    if (actor.id === userId) {
+      throw new AppError("You cannot delete your own account", 400);
+    }
+
+    const user = await userRepo.findById(userId);
+    if (!user) {
+      throw new AppError("User not found", 404);
+    }
+
+    const authoredPostCount = await userRepo.countPostsByAuthor(userId);
+    if (authoredPostCount > 0) {
+      throw new AppError("Cannot delete user with existing posts", 400);
+    }
+
+    await userRepo.delete(userId);
+    return true;
+  },
   
   // Admin: Update user's membership level
   updateMembershipLevel: async (userId: string, membershipLevel: string, actor: AuthUser) => {

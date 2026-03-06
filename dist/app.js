@@ -66,8 +66,16 @@ const createApp = async () => {
     app.use(express_1.default.json({ limit: "1mb" }));
     app.use(express_1.default.urlencoded({ extended: true }));
     app.use(auth_1.authenticate);
-    // Serve uploaded files statically
-    app.use("/uploads", express_1.default.static(path_1.default.resolve(env_1.env.uploadDir)));
+    // Serve uploaded files statically (allow embedding for CV preview iframe)
+    app.use("/uploads", (_req, res, next) => {
+        res.removeHeader("X-Frame-Options");
+        res.setHeader("Content-Security-Policy", "frame-ancestors 'self' https://ecnclub.mn https://www.ecnclub.mn https://ecn-web.vercel.app http://localhost:3000");
+        next();
+    }, express_1.default.static(path_1.default.resolve(env_1.env.uploadDir), {
+        setHeaders: (res) => {
+            res.removeHeader("X-Frame-Options");
+        },
+    }));
     app.get("/health", (_req, res) => {
         res.status(200).json({ status: "ok" });
     });

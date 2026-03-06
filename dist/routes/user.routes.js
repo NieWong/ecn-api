@@ -41,6 +41,7 @@ router.get("/", ...userController.listUsers);
 router.get("/pending", ...userController.listPendingRegistrations);
 router.post("/:id/approve", ...userController.approveUser);
 router.post("/:id/deactivate", ...userController.deactivateUser);
+router.delete("/:id", ...userController.deleteUser);
 router.patch("/:id/membership-level", ...userController.updateMembershipLevel);
 router.patch("/:id/role", ...userController.updateUserRole);
 // User profile routes

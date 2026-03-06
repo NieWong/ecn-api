@@ -58,6 +58,19 @@ export const deactivateUser: RequestHandler[] = [
   },
 ];
 
+export const deleteUser: RequestHandler[] = [
+  requireAuth,
+  requireRole("ADMIN"),
+  async (req: any, res: any, next: any) => {
+    try {
+      await userService.deleteUser(req.params.id, req.user);
+      res.status(204).send();
+    } catch (error) {
+      next(error);
+    }
+  },
+];
+
 export const getProfile: RequestHandler[] = [
   requireAuth,
   async (req: any, res: any, next: any) => {

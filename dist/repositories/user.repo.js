@@ -50,6 +50,9 @@ exports.userRepo = {
             }
         });
     },
+    countPostsByAuthor: (authorId) => {
+        return prisma_1.prisma.post.count({ where: { authorId } });
+    },
     delete: (id) => {
         return prisma_1.prisma.user.delete({ where: { id } });
     },

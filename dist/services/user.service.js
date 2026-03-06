@@ -43,6 +43,25 @@ exports.userService = {
         }
         return user_repo_1.userRepo.update(userId, { isActive: false });
     },
+    // Admin: Delete user
+    deleteUser: async (userId, actor) => {
+        if (actor.role !== "ADMIN") {
+            throw new errors_1.AppError("Forbidden", 403);
+        }
+        if (actor.id === userId) {
+            throw new errors_1.AppError("You cannot delete your own account", 400);
+        }
+        const user = await user_repo_1.userRepo.findById(userId);
+        if (!user) {
+            throw new errors_1.AppError("User not found", 404);
+        }
+        const authoredPostCount = await user_repo_1.userRepo.countPostsByAuthor(userId);
+        if (authoredPostCount > 0) {
+            throw new errors_1.AppError("Cannot delete user with existing posts", 400);
+        }
+        await user_repo_1.userRepo.delete(userId);
+        return true;
+    },
     // Admin: Update user's membership level
     updateMembershipLevel: async (userId, membershipLevel, actor) => {
         if (actor.role !== "ADMIN") {

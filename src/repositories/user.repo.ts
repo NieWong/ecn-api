@@ -66,6 +66,9 @@ export const userRepo = {
       }
     });
   },
+  countPostsByAuthor: (authorId: string) => {
+    return prisma.post.count({ where: { authorId } });
+  },
   delete: (id: string) => {
     return prisma.user.delete({ where: { id } });
   },
