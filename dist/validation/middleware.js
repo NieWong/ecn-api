@@ -22,7 +22,7 @@ exports.validateBody = validateBody;
 const validateQuery = (schema) => {
     return (req, _res, next) => {
         try {
-            req.query = schema.parse(req.query);
+            schema.parse(req.query);
             next();
         }
         catch (error) {

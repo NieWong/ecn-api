@@ -36,5 +36,18 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const userController = __importStar(require("../controllers/user.controller"));
 const router = (0, express_1.Router)();
+// Admin routes
 router.get("/", ...userController.listUsers);
+router.get("/pending", ...userController.listPendingRegistrations);
+router.post("/:id/approve", ...userController.approveUser);
+router.post("/:id/deactivate", ...userController.deactivateUser);
+router.patch("/:id/membership-level", ...userController.updateMembershipLevel);
+router.patch("/:id/role", ...userController.updateUserRole);
+// User profile routes
+router.get("/profile/:id", ...userController.getProfile);
+router.patch("/profile/:id", ...userController.updateProfile);
+router.patch("/profile", ...userController.updateProfile); // Update own profile
+// Public profile route (no auth required)
+router.get("/public", userController.listPublicProfiles);
+router.get("/public/:id", userController.getPublicProfile);
 exports.default = router;

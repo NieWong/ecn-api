@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.me = exports.login = exports.register = void 0;
+exports.me = exports.login = exports.setPassword = exports.register = void 0;
 const auth_service_1 = require("../services/auth.service");
 const auth_schema_1 = require("../validation/schemas/auth.schema");
 const middleware_1 = require("../validation/middleware");
@@ -43,6 +43,18 @@ exports.register = [
         try {
             const result = await auth_service_1.authService.register(req.body);
             res.status(201).json(result);
+        }
+        catch (error) {
+            next(error);
+        }
+    },
+];
+exports.setPassword = [
+    (0, middleware_1.validateBody)(auth_schema_1.setPasswordSchema),
+    async (req, res, next) => {
+        try {
+            const result = await auth_service_1.authService.setPassword(req.body);
+            res.status(200).json(result);
         }
         catch (error) {
             next(error);
@@ -67,7 +79,13 @@ const me = async (req, res, next) => {
             return res.status(200).json(null);
         }
         const { prisma } = await Promise.resolve().then(() => __importStar(require("../db/prisma")));
-        const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+        const user = await prisma.user.findUnique({
+            where: { id: req.user.id },
+            include: {
+                profilePicture: true,
+                cvFile: true,
+            }
+        });
         res.status(200).json(user);
     }
     catch (error) {

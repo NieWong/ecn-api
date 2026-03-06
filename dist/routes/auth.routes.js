@@ -37,6 +37,7 @@ const express_1 = require("express");
 const authController = __importStar(require("../controllers/auth.controller"));
 const router = (0, express_1.Router)();
 router.post("/register", ...authController.register);
+router.post("/set-password", ...authController.setPassword);
 router.post("/login", ...authController.login);
 router.get("/me", authController.me);
 exports.default = router;

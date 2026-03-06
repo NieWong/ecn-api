@@ -48,7 +48,6 @@ const errorHandler_1 = require("./middleware/errorHandler");
 const index_1 = __importDefault(require("./routes/index"));
 const env_1 = require("./config/env");
 const security = (0, helmet_1.default)();
-// Configure multer for file uploads (in-memory storage)
 const upload = (0, multer_1.default)({
     storage: multer_1.default.memoryStorage(),
     limits: {
@@ -58,29 +57,22 @@ const upload = (0, multer_1.default)({
 });
 const createApp = async () => {
     const app = (0, express_1.default)();
-    // Global middleware
     app.use(security);
     app.use((0, cors_1.default)());
     app.use((0, morgan_1.default)("dev"));
     app.use(express_1.default.json({ limit: "1mb" }));
     app.use(express_1.default.urlencoded({ extended: true }));
-    // Auth middleware (optional - extracts user from JWT if present)
     app.use(auth_1.authenticate);
-    // Health check
     app.get("/health", (_req, res) => {
         res.status(200).json({ status: "ok" });
     });
-    // API routes
     app.use("/api", index_1.default);
-    // File upload route (needs special handling with multer)
     app.post("/api/files", upload.single("file"), async (req, res, next) => {
         const { uploadFile } = await Promise.resolve().then(() => __importStar(require("./controllers/file.controller")));
         const handlers = uploadFile;
         handlers[1](req, res, next);
     });
-    // 404 handler
     app.use(notFound_1.notFound);
-    // Error handler
     app.use(errorHandler_1.errorHandler);
     return app;
 };

@@ -104,8 +104,10 @@ export const userService = {
     if (!user) {
       throw new AppError("User not found", 404);
     }
-    
-    return userRepo.update(userId, { role });
+
+    const normalizedRole = role as "ADMIN" | "USER";
+
+    return userRepo.update(userId, { role: normalizedRole });
   },
 
   // User: Get their own profile

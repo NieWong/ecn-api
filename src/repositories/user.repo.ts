@@ -1,4 +1,5 @@
 import { prisma } from "../db/prisma";
+import type { MembershipLevel, Prisma, Role } from "@prisma/client";
 
 export const userRepo = {
   findByEmail: (email: string) => {
@@ -19,9 +20,16 @@ export const userRepo = {
       }
     });
   },
-  list: (filters?: { isActive?: boolean; role?: string }) => {
+  list: (filters?: { isActive?: boolean; role?: Role }) => {
+    const where: Prisma.UserWhereInput | undefined = filters
+      ? {
+          isActive: filters.isActive,
+          role: filters.role,
+        }
+      : undefined;
+
     return prisma.user.findMany({ 
-      where: filters,
+      where,
       orderBy: { createdAt: "desc" },
       include: {
         profilePicture: true,
@@ -36,8 +44,8 @@ export const userRepo = {
     name: string | null;
     password: string | null;
     isActive: boolean;
-    role: string;
-    membershipLevel: string;
+    role: Role;
+    membershipLevel: MembershipLevel;
     profilePictureId: string | null;
     profilePicturePath: string | null;
     cvFileId: string | null;

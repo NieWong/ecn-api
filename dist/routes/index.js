@@ -10,11 +10,13 @@ const post_routes_1 = __importDefault(require("./post.routes"));
 const category_routes_1 = __importDefault(require("./category.routes"));
 const file_routes_1 = __importDefault(require("./file.routes"));
 const post_image_routes_1 = __importDefault(require("./post-image.routes"));
+const notification_routes_1 = __importDefault(require("./notification.routes"));
 const router = (0, express_1.Router)();
 router.use("/auth", auth_routes_1.default);
 router.use("/users", user_routes_1.default);
 router.use("/posts", post_routes_1.default);
 router.use("/categories", category_routes_1.default);
 router.use("/files", file_routes_1.default);
-router.use("/posts", post_image_routes_1.default); // /posts/:postId/images
+router.use("/posts", post_image_routes_1.default);
+router.use("/notifications", notification_routes_1.default);
 exports.default = router;

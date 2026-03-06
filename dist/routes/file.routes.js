@@ -38,7 +38,6 @@ const fileController = __importStar(require("../controllers/file.controller"));
 const router = (0, express_1.Router)();
 router.get("/", fileController.listFiles);
 router.get("/:id", fileController.getFile);
-// File upload handled in app.ts due to multer requirement
 // router.post("/", ...fileController.uploadFile);
 router.delete("/:id", ...fileController.deleteFile);
 exports.default = router;
