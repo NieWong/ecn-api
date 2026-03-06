@@ -11,7 +11,9 @@ import { errorHandler } from "./middleware/errorHandler";
 import routes from "./routes/index";
 import { env } from "./config/env";
 
-const security = helmet();
+const security = helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+});
 
 const upload = multer({
   storage: multer.memoryStorage(),

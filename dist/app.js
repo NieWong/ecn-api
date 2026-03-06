@@ -48,7 +48,9 @@ const notFound_1 = require("./middleware/notFound");
 const errorHandler_1 = require("./middleware/errorHandler");
 const index_1 = __importDefault(require("./routes/index"));
 const env_1 = require("./config/env");
-const security = (0, helmet_1.default)();
+const security = (0, helmet_1.default)({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+});
 const upload = (0, multer_1.default)({
     storage: multer_1.default.memoryStorage(),
     limits: {
