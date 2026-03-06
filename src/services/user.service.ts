@@ -159,6 +159,8 @@ export const userService = {
     return {
       id: user.id,
       name: user.name,
+      role: user.role,
+      membershipLevel: user.membershipLevel,
       aboutMe: user.aboutMe,
       facebook: user.facebook,
       twitter: user.twitter,
@@ -177,6 +179,8 @@ export const userService = {
     return users.map((user) => ({
       id: user.id,
       name: user.name,
+      role: user.role,
+      membershipLevel: user.membershipLevel,
       aboutMe: user.aboutMe,
       facebook: user.facebook,
       twitter: user.twitter,
