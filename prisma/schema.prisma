@@ -46,6 +46,19 @@ enum FileKind {
   OTHER
 }
 
+enum FinanceEntryType {
+  BUDGET
+  INCOME
+  EXPENSE
+}
+
+enum FinanceStatus {
+  PENDING
+  APPROVED
+  PAID
+  CANCELLED
+}
+
 model User {
   id       String  @id @default(uuid())
   email    String  @unique
@@ -54,6 +67,7 @@ model User {
   role     Role    @default(USER)
   isActive Boolean @default(false)
   membershipLevel MembershipLevel @default(REGULAR_USER)
+  isAccountant Boolean @default(false)
 
   // Profile fields
   profilePictureId String?
@@ -75,6 +89,8 @@ model User {
   files File[]
   notifications Notification[]
   approvedPosts Post[] @relation("PostApprovedBy")
+  createdFinanceEntries FinanceEntry[] @relation("FinanceCreatedBy")
+  managedFinanceEntries FinanceEntry[] @relation("FinanceManagedBy")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -82,6 +98,7 @@ model User {
   @@index([role])
   @@index([isActive])
   @@index([membershipLevel])
+  @@index([isAccountant])
 }
 
 model Post {
@@ -209,4 +226,33 @@ model Notification {
   @@index([userId])
   @@index([isRead])
   @@index([createdAt])
+}
+
+model FinanceEntry {
+  id String @id @default(uuid())
+
+  title String
+  type FinanceEntryType
+  amount Decimal @db.Decimal(14, 2)
+  source String?
+  purpose String?
+  usedBy String?
+  status FinanceStatus @default(PENDING)
+  transactionDate DateTime
+  notes String?
+
+  createdById String
+  createdBy User @relation("FinanceCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+
+  managerId String?
+  manager User? @relation("FinanceManagedBy", fields: [managerId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([type])
+  @@index([status])
+  @@index([transactionDate])
+  @@index([createdById])
+  @@index([managerId])
 }

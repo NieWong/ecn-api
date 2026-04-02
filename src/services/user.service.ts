@@ -134,6 +134,20 @@ export const userService = {
     return userRepo.update(userId, { role: normalizedRole });
   },
 
+  // Admin: Toggle user accountant access
+  updateAccountantAccess: async (userId: string, isAccountant: boolean, actor: AuthUser) => {
+    if (actor.role !== "ADMIN") {
+      throw new AppError("Forbidden", 403);
+    }
+
+    const user = await userRepo.findById(userId);
+    if (!user) {
+      throw new AppError("User not found", 404);
+    }
+
+    return userRepo.update(userId, { isAccountant });
+  },
+
   // User: Get their own profile
   getProfile: async (userId: string, actor: AuthUser) => {
     if (actor.id !== userId && actor.role !== "ADMIN") {

@@ -1,9 +1,12 @@
 import type { RequestHandler } from "express";
 import { prisma } from "../db/prisma";
 import { categoryService } from "../services/category.service";
-import { requireAuth, requireRole } from "../middleware/auth";
+import { requireRole } from "../middleware/auth";
 import { validateBody } from "../validation/middleware";
-import { createCategorySchema } from "../validation/schemas/category.schema";
+import {
+  createCategorySchema,
+  updateCategorySchema,
+} from "../validation/schemas/category.schema";
 import { AppError } from "../utils/errors";
 
 export const listCategories: RequestHandler = async (_req, res, next) => {
@@ -38,6 +41,19 @@ export const createCategory: RequestHandler[] = [
     try {
       const category = await categoryService.create(req.body);
       res.status(201).json(category);
+    } catch (error) {
+      next(error);
+    }
+  },
+];
+
+export const updateCategory: RequestHandler[] = [
+  requireRole("ADMIN"),
+  validateBody(updateCategorySchema),
+  async (req, res, next) => {
+    try {
+      const category = await categoryService.update(String(req.params.id), req.body);
+      res.status(200).json(category);
     } catch (error) {
       next(error);
     }

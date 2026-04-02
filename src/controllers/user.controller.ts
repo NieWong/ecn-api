@@ -155,3 +155,25 @@ export const updateUserRole: RequestHandler[] = [
     }
   },
 ];
+
+// Admin: Update user's accountant access
+export const updateAccountantAccess: RequestHandler[] = [
+  requireAuth,
+  requireRole("ADMIN"),
+  async (req: any, res: any, next: any) => {
+    try {
+      const { isAccountant } = req.body;
+      if (typeof isAccountant !== "boolean") {
+        return res.status(400).json({ error: "isAccountant must be boolean" });
+      }
+      const user = await userService.updateAccountantAccess(
+        req.params.id,
+        isAccountant,
+        req.user
+      );
+      res.status(200).json(user);
+    } catch (error) {
+      next(error);
+    }
+  },
+];

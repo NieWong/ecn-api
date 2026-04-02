@@ -46,6 +46,7 @@ export const userRepo = {
     isActive: boolean;
     role: Role;
     membershipLevel: MembershipLevel;
+    isAccountant: boolean;
     profilePictureId: string | null;
     profilePicturePath: string | null;
     cvFileId: string | null;

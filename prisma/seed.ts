@@ -40,9 +40,12 @@ const seed = async () => {
   });
 
   const categories = [
-    { name: "category 1", slug: "category_1" },
-    { name: "category 2", slug: "category_2" },
-    { name: "category 3", slug: "category_3" },
+    { name: "Around Numbers", slug: "around-numbers" },
+    { name: "Highlighting Theory", slug: "highlighting-theory" },
+    { name: "ECN NEWS", slug: "ecn-news" },
+    { name: "Nobel Prize-winning economists", slug: "nobel-prize-winning-economists" },
+    { name: "Economics made simple", slug: "economics-made-simple" },
+    { name: "Book discussions", slug: "book-discussions" },
   ];
 
   for (const category of categories) {
@@ -53,7 +56,13 @@ const seed = async () => {
     });
   }
 
-  const categoryRows = await prisma.category.findMany();
+  const categoryRows = await prisma.category.findMany({
+    where: {
+      slug: {
+        in: ["around-numbers", "highlighting-theory", "ecn-news"],
+      },
+    },
+  });
 
   await prisma.post.upsert({
     where: { slug: "welcome" },

@@ -15,7 +15,13 @@ exports.categoryRepo = {
     create: (data) => {
         return prisma_1.prisma.category.create({ data });
     },
+    update: (id, data) => {
+        return prisma_1.prisma.category.update({ where: { id }, data });
+    },
     delete: (id) => {
         return prisma_1.prisma.category.delete({ where: { id } });
+    },
+    findByIds: (ids) => {
+        return prisma_1.prisma.category.findMany({ where: { id: { in: ids } } });
     },
 };

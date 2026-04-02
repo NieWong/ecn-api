@@ -13,7 +13,13 @@ export const categoryRepo = {
   create: (data: { name: string; slug: string }) => {
     return prisma.category.create({ data });
   },
+  update: (id: string, data: { name?: string; slug?: string }) => {
+    return prisma.category.update({ where: { id }, data });
+  },
   delete: (id: string) => {
     return prisma.category.delete({ where: { id } });
+  },
+  findByIds: (ids: string[]) => {
+    return prisma.category.findMany({ where: { id: { in: ids } } });
   },
 };

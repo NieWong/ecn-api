@@ -34,11 +34,11 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const categoryController = __importStar(require("../controllers/category.controller"));
+const financeController = __importStar(require("../controllers/finance.controller"));
 const router = (0, express_1.Router)();
-router.get("/", categoryController.listCategories);
-router.get("/:id", categoryController.getCategory);
-router.post("/", ...categoryController.createCategory);
-router.patch("/:id", ...categoryController.updateCategory);
-router.delete("/:id", ...categoryController.deleteCategory);
+router.get("/", ...financeController.listFinanceEntries);
+router.get("/summary", ...financeController.getFinanceSummary);
+router.post("/", ...financeController.createFinanceEntry);
+router.patch("/:id", ...financeController.updateFinanceEntry);
+router.delete("/:id", ...financeController.deleteFinanceEntry);
 exports.default = router;

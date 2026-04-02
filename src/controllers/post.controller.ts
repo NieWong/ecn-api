@@ -15,12 +15,11 @@ import { AppError } from "../utils/errors";
 export const listPosts: RequestHandler[] = [
   validateQuery(listPostsQuerySchema),
   async (req, res, next) => {
-    console.log('listPosts controller - Starting...');
-    console.log('listPosts controller - Query params:', req.query);
-    console.log('listPosts controller - User:', req.user ? { id: req.user.id, role: req.user.role } : 'Not authenticated');
-    
     try {
       const query = req.query as any;
+      const canAccessMemberOnlyPosts =
+        !!req.user &&
+        (req.user.role === "ADMIN" || req.user.isAccountant || req.user.membershipLevel !== "REGULAR_USER");
       const filters: Record<string, unknown>[] = [];
 
       if (query.status) {
@@ -54,19 +53,20 @@ export const listPosts: RequestHandler[] = [
       // Access control
       if (!req.user) {
         // Non-authenticated users: only see public approved posts
-        filters.push({ visibility: "PUBLIC", isApproved: true });
+        filters.push({ visibility: "PUBLIC", status: "PUBLISHED", isApproved: true });
       } else if (req.user.role !== "ADMIN") {
-        // Authenticated non-admin: see public approved posts OR their own posts (approved or pending)
+        // Authenticated non-admin: see public approved posts, their own posts, and member-only approved posts (if eligible)
         filters.push({
           OR: [
-            { visibility: "PUBLIC", isApproved: true },
+            { visibility: "PUBLIC", status: "PUBLISHED", isApproved: true },
             { authorId: req.user.id },
+            ...(canAccessMemberOnlyPosts
+              ? [{ visibility: "PRIVATE", status: "PUBLISHED", isApproved: true }]
+              : []),
           ],
         });
       }
       // Admins see everything (no approval filter needed)
-
-      console.log('listPosts controller - Filters:', JSON.stringify(filters, null, 2));
 
       const orderBy: Prisma.PostOrderByWithRelationInput = (() => {
         switch (query.sort) {
@@ -80,9 +80,6 @@ export const listPosts: RequestHandler[] = [
             return { createdAt: Prisma.SortOrder.desc };
         }
       })();
-
-      console.log('listPosts controller - OrderBy:', orderBy);
-      console.log('listPosts controller - About to query database...');
 
       // Parse numeric parameters (they come as strings from query)
       const take = query.take ? parseInt(query.take, 10) : undefined;
@@ -111,18 +108,13 @@ export const listPosts: RequestHandler[] = [
         take,
       });
 
-      console.log(`listPosts controller - Found ${posts.length} posts`);
-
       // Transform categories to match frontend expectation
       const transformedPosts = posts.map(post => ({
         ...post,
         categories: post.categories.map(pc => pc.category),
       }));
-
-      console.log('listPosts controller - Sending response');
       res.status(200).json(transformedPosts);
     } catch (error) {
-      console.error('listPosts controller - Error occurred:', error);
       next(error);
     }
   },
@@ -167,9 +159,20 @@ export const getPost: RequestHandler = async (req, res, next) => {
     };
 
     // Access control
-    if (post.visibility === "PUBLIC") {
+    const isPubliclyVisible = post.visibility === "PUBLIC" && post.status === "PUBLISHED" && post.isApproved;
+    const isMemberOnlyVisible = post.visibility === "PRIVATE" && post.status === "PUBLISHED" && post.isApproved;
+    const canAccessMemberOnlyPost =
+      !!req.user &&
+      (req.user.role === "ADMIN" || req.user.isAccountant || req.user.membershipLevel !== "REGULAR_USER");
+
+    if (isPubliclyVisible) {
       return res.status(200).json(transformedPost);
     }
+
+    if (isMemberOnlyVisible && canAccessMemberOnlyPost) {
+      return res.status(200).json(transformedPost);
+    }
+
     if (!req.user) {
       throw new AppError("Forbidden", 403);
     }

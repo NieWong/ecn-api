@@ -1,11 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.postService = void 0;
+const category_repo_1 = require("../repositories/category.repo");
 const file_repo_1 = require("../repositories/file.repo");
 const post_repo_1 = require("../repositories/post.repo");
 const user_repo_1 = require("../repositories/user.repo");
 const notification_service_1 = require("./notification.service");
 const errors_1 = require("../utils/errors");
+const contentType_1 = require("../utils/contentType");
 const slug_1 = require("../utils/slug");
 const assertPostAccess = (post, actor) => {
     if (actor.role === "ADMIN") {
@@ -39,14 +41,33 @@ exports.postService = {
         if (existing) {
             throw new errors_1.AppError("Slug already exists", 409);
         }
-        const post = await post_repo_1.postRepo.create({ ...data, slug });
-        // Notify author about submission
-        await notification_service_1.notificationService.notifyArticleSubmitted(post.id, post.title, data.authorId);
-        // Notify all admins about new submission
-        const admins = await user_repo_1.userRepo.list({ role: "ADMIN" });
-        const adminIds = admins.map(admin => admin.id);
-        const author = await user_repo_1.userRepo.findById(data.authorId);
-        await notification_service_1.notificationService.notifyAdminsNewSubmission(post.id, post.title, author?.name || "A user", adminIds);
+        const uniqueCategoryIds = Array.from(new Set(data.categoryIds ?? []));
+        const categoryRows = uniqueCategoryIds.length
+            ? await category_repo_1.categoryRepo.findByIds(uniqueCategoryIds)
+            : [];
+        if (categoryRows.length !== uniqueCategoryIds.length) {
+            throw new errors_1.AppError("One or more categories are invalid", 400);
+        }
+        const normalizedCategoryIds = (0, contentType_1.normalizeCategoryIdsByContentType)(uniqueCategoryIds, categoryRows, data.contentType);
+        const post = await post_repo_1.postRepo.create({
+            title: data.title,
+            slug,
+            summary: data.summary,
+            contentJson: data.contentJson,
+            contentHtml: data.contentHtml,
+            status: data.status,
+            visibility: data.visibility,
+            authorId: data.authorId,
+            categoryIds: normalizedCategoryIds,
+            coverImagePath: data.coverImagePath,
+        });
+        if (post.status === "PUBLISHED") {
+            await notification_service_1.notificationService.notifyArticleSubmitted(post.id, post.title, data.authorId);
+            const admins = await user_repo_1.userRepo.list({ role: "ADMIN" });
+            const adminIds = admins.map((admin) => admin.id);
+            const author = await user_repo_1.userRepo.findById(data.authorId);
+            await notification_service_1.notificationService.notifyAdminsNewSubmission(post.id, post.title, author?.name || "A user", adminIds);
+        }
         return post;
     },
     update: async (id, data, actor) => {
@@ -55,6 +76,9 @@ exports.postService = {
             throw new errors_1.AppError("Post not found", 404);
         }
         assertPostAccess(post, actor);
+        if (actor.role !== "ADMIN" && data.adminComment !== undefined) {
+            throw new errors_1.AppError("Forbidden", 403);
+        }
         if (data.slug !== undefined) {
             const normalizedSlug = (0, slug_1.toSlug)(data.slug);
             data.slug = normalizedSlug || (0, slug_1.toSlug)(data.title ?? post.title) || post.slug || `post-${post.id}`;
@@ -63,11 +87,40 @@ exports.postService = {
                 throw new errors_1.AppError("Slug already exists", 409);
             }
         }
+        const uniqueCategoryIds = data.categoryIds
+            ? Array.from(new Set(data.categoryIds))
+            : undefined;
+        let normalizedCategoryIds = uniqueCategoryIds;
+        if (uniqueCategoryIds) {
+            const categoryRows = uniqueCategoryIds.length
+                ? await category_repo_1.categoryRepo.findByIds(uniqueCategoryIds)
+                : [];
+            if (categoryRows.length !== uniqueCategoryIds.length) {
+                throw new errors_1.AppError("One or more categories are invalid", 400);
+            }
+            normalizedCategoryIds = (0, contentType_1.normalizeCategoryIdsByContentType)(uniqueCategoryIds, categoryRows, data.contentType);
+        }
+        const nextStatus = data.status ?? post.status;
+        const shouldSubmitForReview = actor.role !== "ADMIN" && nextStatus === "PUBLISHED";
+        if (shouldSubmitForReview) {
+            data.isApproved = false;
+            data.approvedAt = null;
+            data.approvedById = null;
+        }
         // If admin is adding a comment, notify the author
         if (actor.role === "ADMIN" && data.adminComment && data.adminComment !== post.adminComment) {
             await notification_service_1.notificationService.notifyArticleCommented(post.id, post.title, post.authorId, data.adminComment);
         }
-        return post_repo_1.postRepo.update(id, data, data.categoryIds);
+        const updatedPost = await post_repo_1.postRepo.update(id, data, normalizedCategoryIds);
+        if (shouldSubmitForReview &&
+            (post.status !== "PUBLISHED" || post.isApproved)) {
+            await notification_service_1.notificationService.notifyArticleSubmitted(post.id, updatedPost.title, post.authorId);
+            const admins = await user_repo_1.userRepo.list({ role: "ADMIN" });
+            const adminIds = admins.map((admin) => admin.id);
+            const author = await user_repo_1.userRepo.findById(post.authorId);
+            await notification_service_1.notificationService.notifyAdminsNewSubmission(post.id, updatedPost.title, author?.name || "A user", adminIds);
+        }
+        return updatedPost;
     },
     // Approve a post (admin only)
     approve: async (id, actor) => {

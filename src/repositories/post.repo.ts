@@ -42,9 +42,7 @@ export const postRepo = {
     return prisma.post.findMany({
       where: {
         isApproved: false,
-        status: {
-          in: ["DRAFT", "PUBLISHED"],
-        },
+        status: "PUBLISHED",
       },
       orderBy: { createdAt: "desc" },
       include: postInclude,

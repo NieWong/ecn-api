@@ -1,9 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.setPostCoverSchema = exports.listPostsQuerySchema = exports.updatePostSchema = exports.createPostSchema = exports.postSortSchema = exports.visibilitySchema = exports.postStatusSchema = void 0;
+exports.setPostCoverSchema = exports.listPostsQuerySchema = exports.updatePostSchema = exports.createPostSchema = exports.postSortSchema = exports.contentTypeSchema = exports.visibilitySchema = exports.postStatusSchema = void 0;
 const zod_1 = require("zod");
 exports.postStatusSchema = zod_1.z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]);
 exports.visibilitySchema = zod_1.z.enum(["PUBLIC", "PRIVATE"]);
+exports.contentTypeSchema = zod_1.z.enum(["CONTENT", "NEWS"]);
 exports.postSortSchema = zod_1.z.enum([
     "CREATED_AT_DESC",
     "CREATED_AT_ASC",
@@ -18,6 +19,7 @@ exports.createPostSchema = zod_1.z.object({
     contentHtml: zod_1.z.string().optional(),
     status: exports.postStatusSchema.optional(),
     visibility: exports.visibilitySchema.optional(),
+    contentType: exports.contentTypeSchema.optional(),
     categoryIds: zod_1.z.array(zod_1.z.string()).optional(),
     coverImagePath: zod_1.z.string().optional().nullable(),
 });
@@ -29,6 +31,7 @@ exports.updatePostSchema = zod_1.z.object({
     contentHtml: zod_1.z.string().optional().nullable(),
     status: exports.postStatusSchema.optional(),
     visibility: exports.visibilitySchema.optional(),
+    contentType: exports.contentTypeSchema.optional(),
     coverImagePath: zod_1.z.string().optional().nullable(),
     categoryIds: zod_1.z.array(zod_1.z.string()).optional(),
 });

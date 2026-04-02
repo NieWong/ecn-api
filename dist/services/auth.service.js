@@ -10,7 +10,7 @@ const env_1 = require("../config/env");
 const user_repo_1 = require("../repositories/user.repo");
 const errors_1 = require("../utils/errors");
 const createToken = (user) => {
-    return jsonwebtoken_1.default.sign({ email: user.email, role: user.role }, env_1.env.jwtSecret, {
+    return jsonwebtoken_1.default.sign({ email: user.email, role: user.role, membershipLevel: user.membershipLevel, isAccountant: user.isAccountant }, env_1.env.jwtSecret, {
         subject: user.id,
         expiresIn: env_1.env.jwtExpiresIn,
     });
@@ -46,7 +46,13 @@ exports.authService = {
         }
         const hashed = await bcrypt_1.default.hash(data.password, 10);
         const updatedUser = await user_repo_1.userRepo.update(user.id, { password: hashed });
-        const token = createToken({ id: updatedUser.id, email: updatedUser.email, role: updatedUser.role });
+        const token = createToken({
+            id: updatedUser.id,
+            email: updatedUser.email,
+            role: updatedUser.role,
+            membershipLevel: updatedUser.membershipLevel,
+            isAccountant: updatedUser.isAccountant,
+        });
         return { user: updatedUser, token };
     },
     login: async (data) => {
@@ -64,7 +70,13 @@ exports.authService = {
         if (!valid) {
             throw new errors_1.AppError("Invalid credentials", 401);
         }
-        const token = createToken({ id: user.id, email: user.email, role: user.role });
+        const token = createToken({
+            id: user.id,
+            email: user.email,
+            role: user.role,
+            membershipLevel: user.membershipLevel,
+            isAccountant: user.isAccountant,
+        });
         return { user, token };
     },
 };

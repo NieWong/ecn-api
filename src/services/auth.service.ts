@@ -4,9 +4,15 @@ import { env } from "../config/env";
 import { userRepo } from "../repositories/user.repo";
 import { AppError } from "../utils/errors";
 
-const createToken = (user: { id: string; email: string; role: string }) => {
+const createToken = (user: {
+  id: string;
+  email: string;
+  role: string;
+  membershipLevel: string;
+  isAccountant: boolean;
+}) => {
   return jwt.sign(
-    { email: user.email, role: user.role },
+    { email: user.email, role: user.role, membershipLevel: user.membershipLevel, isAccountant: user.isAccountant },
     env.jwtSecret,
     {
       subject: user.id,
@@ -53,7 +59,13 @@ export const authService = {
     const hashed = await bcrypt.hash(data.password, 10);
     const updatedUser = await userRepo.update(user.id, { password: hashed });
 
-    const token = createToken({ id: updatedUser.id, email: updatedUser.email, role: updatedUser.role });
+    const token = createToken({
+      id: updatedUser.id,
+      email: updatedUser.email,
+      role: updatedUser.role,
+      membershipLevel: updatedUser.membershipLevel,
+      isAccountant: updatedUser.isAccountant,
+    });
     return { user: updatedUser, token };
   },
 
@@ -76,7 +88,13 @@ export const authService = {
       throw new AppError("Invalid credentials", 401);
     }
 
-    const token = createToken({ id: user.id, email: user.email, role: user.role });
+    const token = createToken({
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      membershipLevel: user.membershipLevel,
+      isAccountant: user.isAccountant,
+    });
     return { user, token };
   },
 };

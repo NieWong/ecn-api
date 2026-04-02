@@ -6,6 +6,7 @@ import categoryRoutes from "./category.routes";
 import fileRoutes from "./file.routes";
 import postImageRoutes from "./post-image.routes";
 import notificationRoutes from "./notification.routes";
+import financeRoutes from "./finance.routes";
 
 const router = Router();
 
@@ -16,5 +17,6 @@ router.use("/categories", categoryRoutes);
 router.use("/files", fileRoutes);
 router.use("/posts", postImageRoutes);
 router.use("/notifications", notificationRoutes);
+router.use("/finance", financeRoutes);
 
 export default router;

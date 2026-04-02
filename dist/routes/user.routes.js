@@ -44,6 +44,7 @@ router.post("/:id/deactivate", ...userController.deactivateUser);
 router.delete("/:id", ...userController.deleteUser);
 router.patch("/:id/membership-level", ...userController.updateMembershipLevel);
 router.patch("/:id/role", ...userController.updateUserRole);
+router.patch("/:id/accountant", ...userController.updateAccountantAccess);
 // User profile routes
 router.get("/profile/:id", ...userController.getProfile);
 router.patch("/profile/:id", ...userController.updateProfile);

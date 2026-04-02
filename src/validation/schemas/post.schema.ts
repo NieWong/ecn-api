@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const postStatusSchema = z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]);
 export const visibilitySchema = z.enum(["PUBLIC", "PRIVATE"]);
+export const contentTypeSchema = z.enum(["CONTENT", "NEWS"]);
 export const postSortSchema = z.enum([
   "CREATED_AT_DESC",
   "CREATED_AT_ASC",
@@ -17,6 +18,7 @@ export const createPostSchema = z.object({
   contentHtml: z.string().optional(),
   status: postStatusSchema.optional(),
   visibility: visibilitySchema.optional(),
+  contentType: contentTypeSchema.optional(),
   categoryIds: z.array(z.string()).optional(),
   coverImagePath: z.string().optional().nullable(),
 });
@@ -29,6 +31,7 @@ export const updatePostSchema = z.object({
   contentHtml: z.string().optional().nullable(),
   status: postStatusSchema.optional(),
   visibility: visibilitySchema.optional(),
+  contentType: contentTypeSchema.optional(),
   coverImagePath: z.string().optional().nullable(),
   categoryIds: z.array(z.string()).optional(),
 });

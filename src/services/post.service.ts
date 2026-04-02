@@ -1,10 +1,12 @@
 import { Prisma } from "@prisma/client";
+import { categoryRepo } from "../repositories/category.repo";
 import { fileRepo } from "../repositories/file.repo";
 import { postRepo } from "../repositories/post.repo";
 import { userRepo } from "../repositories/user.repo";
 import { notificationService } from "./notification.service";
 import type { AuthUser } from "../types/auth";
 import { AppError } from "../utils/errors";
+import { normalizeCategoryIdsByContentType, type ContentType } from "../utils/contentType";
 import { toSlug } from "../utils/slug";
 
 const assertPostAccess = (post: { authorId: string }, actor: AuthUser) => {
@@ -44,6 +46,7 @@ export const postService = {
     visibility?: "PUBLIC" | "PRIVATE";
     authorId: string;
     categoryIds?: string[];
+    contentType?: ContentType;
     coverImagePath?: string | null;
   }) => {
     const generatedFromTitle = toSlug(data.title);
@@ -54,21 +57,47 @@ export const postService = {
       throw new AppError("Slug already exists", 409);
     }
     
-    const post = await postRepo.create({ ...data, slug });
-    
-    // Notify author about submission
-    await notificationService.notifyArticleSubmitted(post.id, post.title, data.authorId);
-    
-    // Notify all admins about new submission
-    const admins = await userRepo.list({ role: "ADMIN" });
-    const adminIds = admins.map(admin => admin.id);
-    const author = await userRepo.findById(data.authorId);
-    await notificationService.notifyAdminsNewSubmission(
-      post.id, 
-      post.title, 
-      author?.name || "A user",
-      adminIds
+    const uniqueCategoryIds = Array.from(new Set(data.categoryIds ?? []));
+    const categoryRows = uniqueCategoryIds.length
+      ? await categoryRepo.findByIds(uniqueCategoryIds)
+      : [];
+
+    if (categoryRows.length !== uniqueCategoryIds.length) {
+      throw new AppError("One or more categories are invalid", 400);
+    }
+
+    const normalizedCategoryIds = normalizeCategoryIdsByContentType(
+      uniqueCategoryIds,
+      categoryRows,
+      data.contentType
     );
+
+    const post = await postRepo.create({
+      title: data.title,
+      slug,
+      summary: data.summary,
+      contentJson: data.contentJson,
+      contentHtml: data.contentHtml,
+      status: data.status,
+      visibility: data.visibility,
+      authorId: data.authorId,
+      categoryIds: normalizedCategoryIds,
+      coverImagePath: data.coverImagePath,
+    });
+
+    if (post.status === "PUBLISHED") {
+      await notificationService.notifyArticleSubmitted(post.id, post.title, data.authorId);
+
+      const admins = await userRepo.list({ role: "ADMIN" });
+      const adminIds = admins.map((admin) => admin.id);
+      const author = await userRepo.findById(data.authorId);
+      await notificationService.notifyAdminsNewSubmission(
+        post.id,
+        post.title,
+        author?.name || "A user",
+        adminIds
+      );
+    }
     
     return post;
   },
@@ -85,6 +114,10 @@ export const postService = {
     coverImagePath?: string | null;
     adminComment?: string | null;
     categoryIds?: string[];
+    contentType?: ContentType;
+    isApproved?: boolean;
+    approvedAt?: Date | null;
+    approvedById?: string | null;
     },
     actor: AuthUser
   ) => {
@@ -93,6 +126,10 @@ export const postService = {
       throw new AppError("Post not found", 404);
     }
     assertPostAccess(post, actor);
+
+    if (actor.role !== "ADMIN" && data.adminComment !== undefined) {
+      throw new AppError("Forbidden", 403);
+    }
 
     if (data.slug !== undefined) {
       const normalizedSlug = toSlug(data.slug);
@@ -103,6 +140,36 @@ export const postService = {
       }
     }
     
+    const uniqueCategoryIds = data.categoryIds
+      ? Array.from(new Set(data.categoryIds))
+      : undefined;
+
+    let normalizedCategoryIds = uniqueCategoryIds;
+    if (uniqueCategoryIds) {
+      const categoryRows = uniqueCategoryIds.length
+        ? await categoryRepo.findByIds(uniqueCategoryIds)
+        : [];
+
+      if (categoryRows.length !== uniqueCategoryIds.length) {
+        throw new AppError("One or more categories are invalid", 400);
+      }
+
+      normalizedCategoryIds = normalizeCategoryIdsByContentType(
+        uniqueCategoryIds,
+        categoryRows,
+        data.contentType
+      );
+    }
+
+    const nextStatus = data.status ?? post.status;
+    const shouldSubmitForReview = actor.role !== "ADMIN" && nextStatus === "PUBLISHED";
+
+    if (shouldSubmitForReview) {
+      data.isApproved = false;
+      data.approvedAt = null;
+      data.approvedById = null;
+    }
+
     // If admin is adding a comment, notify the author
     if (actor.role === "ADMIN" && data.adminComment && data.adminComment !== post.adminComment) {
       await notificationService.notifyArticleCommented(
@@ -112,8 +179,27 @@ export const postService = {
         data.adminComment
       );
     }
-    
-    return postRepo.update(id, data, data.categoryIds);
+
+    const updatedPost = await postRepo.update(id, data, normalizedCategoryIds);
+
+    if (
+      shouldSubmitForReview &&
+      (post.status !== "PUBLISHED" || post.isApproved)
+    ) {
+      await notificationService.notifyArticleSubmitted(post.id, updatedPost.title, post.authorId);
+
+      const admins = await userRepo.list({ role: "ADMIN" });
+      const adminIds = admins.map((admin) => admin.id);
+      const author = await userRepo.findById(post.authorId);
+      await notificationService.notifyAdminsNewSubmission(
+        post.id,
+        updatedPost.title,
+        author?.name || "A user",
+        adminIds
+      );
+    }
+
+    return updatedPost;
   },
   
   // Approve a post (admin only)

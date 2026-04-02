@@ -22,6 +22,8 @@ const authenticate = (req, _res, next) => {
             id: String(payload.sub),
             email: String(payload.email),
             role: payload.role,
+            membershipLevel: payload.membershipLevel ?? "REGULAR_USER",
+            isAccountant: Boolean(payload.isAccountant),
         };
         return next();
     }

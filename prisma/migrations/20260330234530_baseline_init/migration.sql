@@ -2,7 +2,13 @@
 CREATE TYPE "Role" AS ENUM ('ADMIN', 'USER');
 
 -- CreateEnum
+CREATE TYPE "MembershipLevel" AS ENUM ('REGULAR_USER', 'MEMBER', 'HONORARY_MEMBER', 'BOARD_MEMBER', 'ADMIN_MEMBER');
+
+-- CreateEnum
 CREATE TYPE "PostStatus" AS ENUM ('DRAFT', 'PUBLISHED', 'ARCHIVED');
+
+-- CreateEnum
+CREATE TYPE "NotificationType" AS ENUM ('ARTICLE_SUBMITTED', 'ARTICLE_APPROVED', 'ARTICLE_REJECTED', 'ARTICLE_COMMENTED', 'MEMBERSHIP_CHANGED', 'USER_APPROVED', 'SYSTEM');
 
 -- CreateEnum
 CREATE TYPE "Visibility" AS ENUM ('PUBLIC', 'PRIVATE');
@@ -15,9 +21,20 @@ CREATE TABLE "User" (
     "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "name" TEXT,
-    "password" TEXT NOT NULL,
+    "password" TEXT,
     "role" "Role" NOT NULL DEFAULT 'USER',
-    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "isActive" BOOLEAN NOT NULL DEFAULT false,
+    "membershipLevel" "MembershipLevel" NOT NULL DEFAULT 'REGULAR_USER',
+    "profilePictureId" TEXT,
+    "profilePicturePath" TEXT,
+    "cvFileId" TEXT,
+    "cvFilePath" TEXT,
+    "aboutMe" TEXT,
+    "facebook" TEXT,
+    "twitter" TEXT,
+    "linkedin" TEXT,
+    "phone" TEXT,
+    "website" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -34,8 +51,13 @@ CREATE TABLE "Post" (
     "contentHtml" TEXT,
     "status" "PostStatus" NOT NULL DEFAULT 'DRAFT',
     "visibility" "Visibility" NOT NULL DEFAULT 'PUBLIC',
+    "isApproved" BOOLEAN NOT NULL DEFAULT false,
+    "approvedAt" TIMESTAMP(3),
+    "approvedById" TEXT,
+    "adminComment" TEXT,
     "authorId" TEXT NOT NULL,
     "coverFileId" TEXT,
+    "coverImagePath" TEXT,
     "publishedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -87,11 +109,32 @@ CREATE TABLE "PostImage" (
     CONSTRAINT "PostImage_pkey" PRIMARY KEY ("postId","fileId")
 );
 
+-- CreateTable
+CREATE TABLE "Notification" (
+    "id" TEXT NOT NULL,
+    "type" "NotificationType" NOT NULL,
+    "title" TEXT NOT NULL,
+    "message" TEXT NOT NULL,
+    "isRead" BOOLEAN NOT NULL DEFAULT false,
+    "postId" TEXT,
+    "userId" TEXT NOT NULL,
+    "metadata" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Notification_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
 -- CreateIndex
 CREATE INDEX "User_role_idx" ON "User"("role");
+
+-- CreateIndex
+CREATE INDEX "User_isActive_idx" ON "User"("isActive");
+
+-- CreateIndex
+CREATE INDEX "User_membershipLevel_idx" ON "User"("membershipLevel");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Post_slug_key" ON "Post"("slug");
@@ -107,6 +150,9 @@ CREATE INDEX "Post_visibility_idx" ON "Post"("visibility");
 
 -- CreateIndex
 CREATE INDEX "Post_createdAt_idx" ON "Post"("createdAt");
+
+-- CreateIndex
+CREATE INDEX "Post_isApproved_idx" ON "Post"("isApproved");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Category_slug_key" ON "Category"("slug");
@@ -132,6 +178,24 @@ CREATE INDEX "File_kind_idx" ON "File"("kind");
 -- CreateIndex
 CREATE INDEX "PostImage_fileId_idx" ON "PostImage"("fileId");
 
+-- CreateIndex
+CREATE INDEX "Notification_userId_idx" ON "Notification"("userId");
+
+-- CreateIndex
+CREATE INDEX "Notification_isRead_idx" ON "Notification"("isRead");
+
+-- CreateIndex
+CREATE INDEX "Notification_createdAt_idx" ON "Notification"("createdAt");
+
+-- AddForeignKey
+ALTER TABLE "User" ADD CONSTRAINT "User_profilePictureId_fkey" FOREIGN KEY ("profilePictureId") REFERENCES "File"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "User" ADD CONSTRAINT "User_cvFileId_fkey" FOREIGN KEY ("cvFileId") REFERENCES "File"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Post" ADD CONSTRAINT "Post_approvedById_fkey" FOREIGN KEY ("approvedById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
 -- AddForeignKey
 ALTER TABLE "Post" ADD CONSTRAINT "Post_authorId_fkey" FOREIGN KEY ("authorId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
@@ -152,3 +216,6 @@ ALTER TABLE "PostImage" ADD CONSTRAINT "PostImage_postId_fkey" FOREIGN KEY ("pos
 
 -- AddForeignKey
 ALTER TABLE "PostImage" ADD CONSTRAINT "PostImage_fileId_fkey" FOREIGN KEY ("fileId") REFERENCES "File"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Notification" ADD CONSTRAINT "Notification_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
