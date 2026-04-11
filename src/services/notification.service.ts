@@ -142,6 +142,31 @@ export const notificationService = {
     });
   },
 
+  // Notify admins when a user asks for password reset
+  notifyAdminsPasswordResetRequested: async (
+    userId: string,
+    userEmail: string,
+    userName: string | null,
+    adminIds: string[]
+  ) => {
+    const notifications = adminIds.map((adminId) =>
+      notificationRepo.create({
+        type: NotificationType.SYSTEM,
+        title: "Password Reset Request",
+        message: `${userName || userEmail} requested a password reset.`,
+        userId: adminId,
+        metadata: {
+          kind: "PASSWORD_RESET_REQUEST",
+          requestedByUserId: userId,
+          email: userEmail,
+          name: userName,
+        },
+      })
+    );
+
+    return Promise.all(notifications);
+  },
+
   // Send system notification
   notifySystem: async (userId: string, title: string, message: string, metadata?: Record<string, unknown>) => {
     return notificationRepo.create({

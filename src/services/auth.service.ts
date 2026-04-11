@@ -2,6 +2,7 @@ import bcrypt from "bcrypt";
 import jwt, { type SignOptions } from "jsonwebtoken";
 import { env } from "../config/env";
 import { userRepo } from "../repositories/user.repo";
+import { notificationService } from "./notification.service";
 import { AppError } from "../utils/errors";
 
 const createToken = (user: {
@@ -96,5 +97,30 @@ export const authService = {
       isAccountant: user.isAccountant,
     });
     return { user, token };
+  },
+
+  forgotPassword: async (data: { email: string }) => {
+    const genericResponse = {
+      message: "Password reset request submitted. Admin will review and contact you.",
+    };
+
+    const user = await userRepo.findByEmail(data.email);
+    if (!user || !user.isActive) {
+      return genericResponse;
+    }
+
+    const admins = await userRepo.list({ role: "ADMIN" });
+    const adminIds = admins.map((admin) => admin.id);
+
+    if (adminIds.length > 0) {
+      await notificationService.notifyAdminsPasswordResetRequested(
+        user.id,
+        user.email,
+        user.name,
+        adminIds
+      );
+    }
+
+    return genericResponse;
   },
 };

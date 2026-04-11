@@ -177,3 +177,17 @@ export const updateAccountantAccess: RequestHandler[] = [
     }
   },
 ];
+
+// Admin: Allow user password reset (clear password so they can set new one)
+export const allowPasswordReset: RequestHandler[] = [
+  requireAuth,
+  requireRole("ADMIN"),
+  async (req: any, res: any, next: any) => {
+    try {
+      const user = await userService.allowPasswordReset(req.params.id, req.user);
+      res.status(200).json(user);
+    } catch (error) {
+      next(error);
+    }
+  },
+];

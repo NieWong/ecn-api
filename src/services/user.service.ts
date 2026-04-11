@@ -148,6 +148,32 @@ export const userService = {
     return userRepo.update(userId, { isAccountant });
   },
 
+  // Admin: Allow user to set a new password (for forgot password requests)
+  allowPasswordReset: async (userId: string, actor: AuthUser) => {
+    if (actor.role !== "ADMIN") {
+      throw new AppError("Forbidden", 403);
+    }
+
+    const user = await userRepo.findById(userId);
+    if (!user) {
+      throw new AppError("User not found", 404);
+    }
+
+    const updatedUser = await userRepo.update(userId, { password: null });
+
+    await notificationService.notifySystem(
+      userId,
+      "Password Reset Approved",
+      "Admin approved your password reset request. Please set a new password from the set password page.",
+      {
+        kind: "PASSWORD_RESET_APPROVED",
+        email: user.email,
+      }
+    );
+
+    return updatedUser;
+  },
+
   // User: Get their own profile
   getProfile: async (userId: string, actor: AuthUser) => {
     if (actor.id !== userId && actor.role !== "ADMIN") {

@@ -12,6 +12,7 @@ router.delete("/:id", ...(userController.deleteUser as any));
 router.patch("/:id/membership-level", ...(userController.updateMembershipLevel as any));
 router.patch("/:id/role", ...(userController.updateUserRole as any));
 router.patch("/:id/accountant", ...(userController.updateAccountantAccess as any));
+router.post("/:id/allow-password-reset", ...(userController.allowPasswordReset as any));
 
 // User profile routes
 router.get("/profile/:id", ...(userController.getProfile as any));
