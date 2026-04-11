@@ -21,6 +21,7 @@ exports.createPostSchema = zod_1.z.object({
     visibility: exports.visibilitySchema.optional(),
     contentType: exports.contentTypeSchema.optional(),
     categoryIds: zod_1.z.array(zod_1.z.string()).optional(),
+    attachmentFileIds: zod_1.z.array(zod_1.z.string()).optional(),
     coverImagePath: zod_1.z.string().optional().nullable(),
 });
 exports.updatePostSchema = zod_1.z.object({
@@ -34,6 +35,7 @@ exports.updatePostSchema = zod_1.z.object({
     contentType: exports.contentTypeSchema.optional(),
     coverImagePath: zod_1.z.string().optional().nullable(),
     categoryIds: zod_1.z.array(zod_1.z.string()).optional(),
+    attachmentFileIds: zod_1.z.array(zod_1.z.string()).optional(),
 });
 exports.listPostsQuerySchema = zod_1.z.object({
     skip: zod_1.z.coerce.number().int().nonnegative().optional(),

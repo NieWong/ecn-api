@@ -54,7 +54,7 @@ exports.getFinanceSummary = [
             const summary = await finance_service_1.financeService.summary(req.user, buildFinanceWhere(query));
             res.status(200).json({
                 ...summary,
-                balance: summary.totalIncome - summary.totalExpense,
+                balance: summary.totalBudget + summary.totalIncome - summary.totalExpense,
             });
         }
         catch (error) {

@@ -20,6 +20,7 @@ export const createPostSchema = z.object({
   visibility: visibilitySchema.optional(),
   contentType: contentTypeSchema.optional(),
   categoryIds: z.array(z.string()).optional(),
+  attachmentFileIds: z.array(z.string()).optional(),
   coverImagePath: z.string().optional().nullable(),
 });
 
@@ -34,6 +35,7 @@ export const updatePostSchema = z.object({
   contentType: contentTypeSchema.optional(),
   coverImagePath: z.string().optional().nullable(),
   categoryIds: z.array(z.string()).optional(),
+  attachmentFileIds: z.array(z.string()).optional(),
 });
 
 export const listPostsQuerySchema = z.object({

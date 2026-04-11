@@ -1,10 +1,16 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteFile = exports.uploadFile = exports.getFile = exports.listFiles = void 0;
+exports.deleteFile = exports.uploadFile = exports.downloadFile = exports.getFile = exports.listFiles = void 0;
 const prisma_1 = require("../db/prisma");
 const file_service_1 = require("../services/file.service");
 const auth_1 = require("../middleware/auth");
 const errors_1 = require("../utils/errors");
+const fs_1 = __importDefault(require("fs"));
+const path_1 = __importDefault(require("path"));
+const env_1 = require("../config/env");
 const listFiles = async (req, res, next) => {
     try {
         if (!req.user) {
@@ -29,22 +35,7 @@ const listFiles = async (req, res, next) => {
 exports.listFiles = listFiles;
 const getFile = async (req, res, next) => {
     try {
-        const file = await prisma_1.prisma.file.findUnique({
-            where: { id: String(req.params.id) },
-        });
-        if (!file) {
-            throw new errors_1.AppError("File not found", 404);
-        }
-        // Access control
-        if (file.visibility === "PUBLIC") {
-            return res.status(200).json(file);
-        }
-        if (!req.user) {
-            throw new errors_1.AppError("Forbidden", 403);
-        }
-        if (file.ownerId !== req.user.id && req.user.role !== "ADMIN") {
-            throw new errors_1.AppError("Forbidden", 403);
-        }
+        const file = await file_service_1.fileService.getAccessibleById(String(req.params.id), req.user);
         res.status(200).json(file);
     }
     catch (error) {
@@ -52,6 +43,27 @@ const getFile = async (req, res, next) => {
     }
 };
 exports.getFile = getFile;
+const downloadFile = async (req, res, next) => {
+    try {
+        const file = await file_service_1.fileService.getAccessibleById(String(req.params.id), req.user);
+        const filePath = path_1.default.join(env_1.env.uploadDir, file.storageKey);
+        const fileExists = await fs_1.default.promises
+            .access(filePath, fs_1.default.constants.R_OK)
+            .then(() => true)
+            .catch(() => false);
+        if (!fileExists) {
+            throw new errors_1.AppError("File not found", 404);
+        }
+        res.setHeader("Content-Type", file.mimeType || "application/octet-stream");
+        res.setHeader("Content-Disposition", `attachment; filename*=UTF-8''${encodeURIComponent(file.originalName)}`);
+        res.setHeader("Content-Length", String(file.size));
+        return res.sendFile(filePath);
+    }
+    catch (error) {
+        next(error);
+    }
+};
+exports.downloadFile = downloadFile;
 exports.uploadFile = [
     auth_1.requireAuth,
     async (req, res, next) => {

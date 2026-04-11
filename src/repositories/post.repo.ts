@@ -4,6 +4,12 @@ import { prisma } from "../db/prisma";
 const postInclude = {
   author: true,
   categories: { include: { category: true } },
+  images: {
+    include: {
+      file: true,
+    },
+    orderBy: { sort: "asc" as const },
+  },
   approvedBy: {
     select: {
       id: true,
@@ -58,6 +64,7 @@ export const postRepo = {
     visibility?: "PUBLIC" | "PRIVATE";
     authorId: string;
     categoryIds?: string[];
+    attachmentFileIds?: string[];
     coverImagePath?: string | null;
   }) => {
     return prisma.post.create({
@@ -79,6 +86,13 @@ export const postRepo = {
               },
             }
           : undefined,
+        images: data.attachmentFileIds
+          ? {
+              createMany: {
+                data: data.attachmentFileIds.map((fileId, index) => ({ fileId, sort: index })),
+              },
+            }
+          : undefined,
       },
       include: postInclude,
     });
@@ -97,7 +111,7 @@ export const postRepo = {
     approvedAt?: Date | null;
     approvedById?: string | null;
     adminComment?: string | null;
-  }, categoryIds?: string[]) => {
+  }, categoryIds?: string[], attachmentFileIds?: string[]) => {
     const updateData: Prisma.PostUpdateInput = {
       title: data.title,
       slug: data.slug,
@@ -131,6 +145,15 @@ export const postRepo = {
       if (categoryIds.length > 0) {
         await prisma.postCategory.createMany({
           data: categoryIds.map((categoryId) => ({ postId: id, categoryId })),
+        });
+      }
+    }
+
+    if (attachmentFileIds !== undefined) {
+      await prisma.postImage.deleteMany({ where: { postId: id } });
+      if (attachmentFileIds.length > 0) {
+        await prisma.postImage.createMany({
+          data: attachmentFileIds.map((fileId, index) => ({ postId: id, fileId, sort: index })),
         });
       }
     }

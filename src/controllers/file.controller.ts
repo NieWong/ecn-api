@@ -3,6 +3,9 @@ import { prisma } from "../db/prisma";
 import { fileService } from "../services/file.service";
 import { requireAuth } from "../middleware/auth";
 import { AppError } from "../utils/errors";
+import fs from "fs";
+import path from "path";
+import { env } from "../config/env";
 
 export const listFiles: RequestHandler = async (req, res, next) => {
   try {
@@ -28,26 +31,33 @@ export const listFiles: RequestHandler = async (req, res, next) => {
 
 export const getFile: RequestHandler = async (req, res, next) => {
   try {
-    const file = await prisma.file.findUnique({
-      where: { id: String(req.params.id) },
-    });
+    const file = await fileService.getAccessibleById(String(req.params.id), req.user);
 
-    if (!file) {
+    res.status(200).json(file);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const downloadFile: RequestHandler = async (req, res, next) => {
+  try {
+    const file = await fileService.getAccessibleById(String(req.params.id), req.user);
+
+    const filePath = path.join(env.uploadDir, file.storageKey);
+    const fileExists = await fs.promises
+      .access(filePath, fs.constants.R_OK)
+      .then(() => true)
+      .catch(() => false);
+
+    if (!fileExists) {
       throw new AppError("File not found", 404);
     }
 
-    // Access control
-    if (file.visibility === "PUBLIC") {
-      return res.status(200).json(file);
-    }
-    if (!req.user) {
-      throw new AppError("Forbidden", 403);
-    }
-    if (file.ownerId !== req.user.id && req.user.role !== "ADMIN") {
-      throw new AppError("Forbidden", 403);
-    }
+    res.setHeader("Content-Type", file.mimeType || "application/octet-stream");
+    res.setHeader("Content-Disposition", `attachment; filename*=UTF-8''${encodeURIComponent(file.originalName)}`);
+    res.setHeader("Content-Length", String(file.size));
 
-    res.status(200).json(file);
+    return res.sendFile(filePath);
   } catch (error) {
     next(error);
   }

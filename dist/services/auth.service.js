@@ -8,6 +8,7 @@ const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const env_1 = require("../config/env");
 const user_repo_1 = require("../repositories/user.repo");
+const notification_service_1 = require("./notification.service");
 const errors_1 = require("../utils/errors");
 const createToken = (user) => {
     return jsonwebtoken_1.default.sign({ email: user.email, role: user.role, membershipLevel: user.membershipLevel, isAccountant: user.isAccountant }, env_1.env.jwtSecret, {
@@ -78,5 +79,20 @@ exports.authService = {
             isAccountant: user.isAccountant,
         });
         return { user, token };
+    },
+    forgotPassword: async (data) => {
+        const genericResponse = {
+            message: "Password reset request submitted. Admin will review and contact you.",
+        };
+        const user = await user_repo_1.userRepo.findByEmail(data.email);
+        if (!user || !user.isActive) {
+            return genericResponse;
+        }
+        const admins = await user_repo_1.userRepo.list({ role: "ADMIN" });
+        const adminIds = admins.map((admin) => admin.id);
+        if (adminIds.length > 0) {
+            await notification_service_1.notificationService.notifyAdminsPasswordResetRequested(user.id, user.email, user.name, adminIds);
+        }
+        return genericResponse;
     },
 };

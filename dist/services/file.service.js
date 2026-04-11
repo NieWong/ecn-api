@@ -12,6 +12,29 @@ const env_1 = require("../config/env");
 const file_repo_1 = require("../repositories/file.repo");
 const errors_1 = require("../utils/errors");
 const fileKind_1 = require("../utils/fileKind");
+const canAccessMemberOnlyContent = (actor) => {
+    if (!actor)
+        return false;
+    return actor.role === "ADMIN" || actor.isAccountant || actor.membershipLevel !== "REGULAR_USER";
+};
+const hasLinkedMemberOnlyPost = (file) => {
+    return (file.postImages?.some(({ post }) => post.visibility === "PRIVATE" && post.status === "PUBLISHED" && post.isApproved) ?? false);
+};
+const assertFileReadable = (file, actor) => {
+    if (file.visibility === "PUBLIC") {
+        return;
+    }
+    if (!actor) {
+        throw new errors_1.AppError("Forbidden", 403);
+    }
+    if (actor.role === "ADMIN" || file.ownerId === actor.id) {
+        return;
+    }
+    if (canAccessMemberOnlyContent(actor) && hasLinkedMemberOnlyPost(file)) {
+        return;
+    }
+    throw new errors_1.AppError("Forbidden", 403);
+};
 const ensureUploadDir = async () => {
     await fs_1.default.promises.mkdir(env_1.env.uploadDir, { recursive: true });
 };
@@ -35,6 +58,14 @@ exports.fileService = {
             width: null,
             height: null,
         });
+    },
+    getAccessibleById: async (id, actor) => {
+        const file = await file_repo_1.fileRepo.findById(id, { includePostImages: true });
+        if (!file) {
+            throw new errors_1.AppError("File not found", 404);
+        }
+        assertFileReadable(file, actor);
+        return file;
     },
     delete: async (id, actor) => {
         const file = await file_repo_1.fileRepo.findById(id);

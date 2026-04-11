@@ -37,6 +37,7 @@ const express_1 = require("express");
 const fileController = __importStar(require("../controllers/file.controller"));
 const router = (0, express_1.Router)();
 router.get("/", fileController.listFiles);
+router.get("/:id/download", fileController.downloadFile);
 router.get("/:id", fileController.getFile);
 // router.post("/", ...fileController.uploadFile);
 router.delete("/:id", ...fileController.deleteFile);

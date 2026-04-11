@@ -13,6 +13,8 @@ exports.listPosts = [
     async (req, res, next) => {
         try {
             const query = req.query;
+            const canAccessMemberOnlyPosts = !!req.user &&
+                (req.user.role === "ADMIN" || req.user.isAccountant || req.user.membershipLevel !== "REGULAR_USER");
             const filters = [];
             if (query.status) {
                 filters.push({ status: query.status });
@@ -46,11 +48,14 @@ exports.listPosts = [
                 filters.push({ visibility: "PUBLIC", status: "PUBLISHED", isApproved: true });
             }
             else if (req.user.role !== "ADMIN") {
-                // Authenticated non-admin: see public approved posts OR their own posts (approved or pending)
+                // Authenticated non-admin: see public approved posts, their own posts, and member-only approved posts (if eligible)
                 filters.push({
                     OR: [
                         { visibility: "PUBLIC", status: "PUBLISHED", isApproved: true },
                         { authorId: req.user.id },
+                        ...(canAccessMemberOnlyPosts
+                            ? [{ visibility: "PRIVATE", status: "PUBLISHED", isApproved: true }]
+                            : []),
                     ],
                 });
             }
@@ -82,6 +87,14 @@ exports.listPosts = [
                         },
                     },
                     coverFile: true,
+                    images: {
+                        include: {
+                            file: true,
+                        },
+                        orderBy: {
+                            sort: "asc",
+                        },
+                    },
                     categories: {
                         include: {
                             category: true,
@@ -122,6 +135,14 @@ const getPost = async (req, res, next) => {
                     },
                 },
                 coverFile: true,
+                images: {
+                    include: {
+                        file: true,
+                    },
+                    orderBy: {
+                        sort: "asc",
+                    },
+                },
                 categories: {
                     include: {
                         category: true,
@@ -139,7 +160,13 @@ const getPost = async (req, res, next) => {
         };
         // Access control
         const isPubliclyVisible = post.visibility === "PUBLIC" && post.status === "PUBLISHED" && post.isApproved;
+        const isMemberOnlyVisible = post.visibility === "PRIVATE" && post.status === "PUBLISHED" && post.isApproved;
+        const canAccessMemberOnlyPost = !!req.user &&
+            (req.user.role === "ADMIN" || req.user.isAccountant || req.user.membershipLevel !== "REGULAR_USER");
         if (isPubliclyVisible) {
+            return res.status(200).json(transformedPost);
+        }
+        if (isMemberOnlyVisible && canAccessMemberOnlyPost) {
             return res.status(200).json(transformedPost);
         }
         if (!req.user) {
@@ -163,6 +190,7 @@ exports.createPost = [
             const post = await post_service_1.postService.create({
                 ...req.body,
                 authorId: req.user.id,
+                actor: req.user,
             });
             res.status(201).json(post);
         }

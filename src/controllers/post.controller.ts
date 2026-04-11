@@ -97,6 +97,14 @@ export const listPosts: RequestHandler[] = [
             },
           },
           coverFile: true,
+          images: {
+            include: {
+              file: true,
+            },
+            orderBy: {
+              sort: "asc",
+            },
+          },
           categories: {
             include: {
               category: true,
@@ -140,6 +148,14 @@ export const getPost: RequestHandler = async (req, res, next) => {
           },
         },
         coverFile: true,
+        images: {
+          include: {
+            file: true,
+          },
+          orderBy: {
+            sort: "asc",
+          },
+        },
         categories: {
           include: {
             category: true,
@@ -194,6 +210,7 @@ export const createPost: RequestHandler[] = [
       const post = await postService.create({
         ...req.body,
         authorId: req.user!.id,
+        actor: req.user!,
       });
       res.status(201).json(post);
     } catch (error) {

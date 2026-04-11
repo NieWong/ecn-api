@@ -18,6 +18,38 @@ const assertPostAccess = (post: { authorId: string }, actor: AuthUser) => {
   }
 };
 
+const canCreateMemberPost = (actor: AuthUser) => {
+  return actor.role === "ADMIN" || actor.isAccountant || actor.membershipLevel !== "REGULAR_USER";
+};
+
+const assertCanCreatePost = (actor: AuthUser) => {
+  if (!canCreateMemberPost(actor)) {
+    throw new AppError("Only members can create posts", 403);
+  }
+};
+
+const validateAttachmentOwnership = async (attachmentFileIds: string[] | undefined, actor: AuthUser) => {
+  if (!attachmentFileIds || attachmentFileIds.length === 0) {
+    return [] as string[];
+  }
+
+  const uniqueFileIds = Array.from(new Set(attachmentFileIds));
+  const files = await fileRepo.list({ where: { id: { in: uniqueFileIds } } });
+
+  if (files.length !== uniqueFileIds.length) {
+    throw new AppError("One or more attachment files are invalid", 400);
+  }
+
+  if (actor.role !== "ADMIN") {
+    const hasForeignFile = files.some((file) => file.ownerId !== actor.id);
+    if (hasForeignFile) {
+      throw new AppError("Forbidden", 403);
+    }
+  }
+
+  return uniqueFileIds;
+};
+
 export const postService = {
   list: () => postRepo.list(),
   
@@ -48,7 +80,11 @@ export const postService = {
     categoryIds?: string[];
     contentType?: ContentType;
     coverImagePath?: string | null;
+    attachmentFileIds?: string[];
+    actor: AuthUser;
   }) => {
+    assertCanCreatePost(data.actor);
+
     const generatedFromTitle = toSlug(data.title);
     const requestedSlug = data.slug ? toSlug(data.slug) : "";
     const slug = requestedSlug || generatedFromTitle || `post-${Date.now()}`;
@@ -72,6 +108,8 @@ export const postService = {
       data.contentType
     );
 
+    const attachmentFileIds = await validateAttachmentOwnership(data.attachmentFileIds, data.actor);
+
     const post = await postRepo.create({
       title: data.title,
       slug,
@@ -83,6 +121,7 @@ export const postService = {
       authorId: data.authorId,
       categoryIds: normalizedCategoryIds,
       coverImagePath: data.coverImagePath,
+      attachmentFileIds,
     });
 
     if (post.status === "PUBLISHED") {
@@ -118,6 +157,7 @@ export const postService = {
     isApproved?: boolean;
     approvedAt?: Date | null;
     approvedById?: string | null;
+    attachmentFileIds?: string[];
     },
     actor: AuthUser
   ) => {
@@ -161,6 +201,8 @@ export const postService = {
       );
     }
 
+    const attachmentFileIds = await validateAttachmentOwnership(data.attachmentFileIds, actor);
+
     const nextStatus = data.status ?? post.status;
     const shouldSubmitForReview = actor.role !== "ADMIN" && nextStatus === "PUBLISHED";
 
@@ -180,7 +222,7 @@ export const postService = {
       );
     }
 
-    const updatedPost = await postRepo.update(id, data, normalizedCategoryIds);
+    const updatedPost = await postRepo.update(id, data, normalizedCategoryIds, data.attachmentFileIds === undefined ? undefined : attachmentFileIds);
 
     if (
       shouldSubmitForReview &&

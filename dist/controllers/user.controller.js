@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateAccountantAccess = exports.updateUserRole = exports.updateMembershipLevel = exports.listPublicProfiles = exports.getPublicProfile = exports.updateProfile = exports.getProfile = exports.deleteUser = exports.deactivateUser = exports.approveUser = exports.listPendingRegistrations = exports.listUsers = void 0;
+exports.allowPasswordReset = exports.updateAccountantAccess = exports.updateUserRole = exports.updateMembershipLevel = exports.listPublicProfiles = exports.getPublicProfile = exports.updateProfile = exports.getProfile = exports.deleteUser = exports.deactivateUser = exports.approveUser = exports.listPendingRegistrations = exports.listUsers = void 0;
 const user_service_1 = require("../services/user.service");
 const auth_1 = require("../middleware/auth");
 const middleware_1 = require("../validation/middleware");
@@ -166,6 +166,20 @@ exports.updateAccountantAccess = [
                 return res.status(400).json({ error: "isAccountant must be boolean" });
             }
             const user = await user_service_1.userService.updateAccountantAccess(req.params.id, isAccountant, req.user);
+            res.status(200).json(user);
+        }
+        catch (error) {
+            next(error);
+        }
+    },
+];
+// Admin: Allow user password reset (clear password so they can set new one)
+exports.allowPasswordReset = [
+    auth_1.requireAuth,
+    (0, auth_1.requireRole)("ADMIN"),
+    async (req, res, next) => {
+        try {
+            const user = await user_service_1.userService.allowPasswordReset(req.params.id, req.user);
             res.status(200).json(user);
         }
         catch (error) {

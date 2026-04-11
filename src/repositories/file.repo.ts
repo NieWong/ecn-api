@@ -1,8 +1,26 @@
 import { prisma } from "../db/prisma";
 
 export const fileRepo = {
-  findById: (id: string) => {
-    return prisma.file.findUnique({ where: { id } });
+  findById: (id: string, options?: { includePostImages?: boolean }) => {
+    return prisma.file.findUnique({
+      where: { id },
+      include: options?.includePostImages
+        ? {
+            postImages: {
+              include: {
+                post: {
+                  select: {
+                    id: true,
+                    visibility: true,
+                    status: true,
+                    isApproved: true,
+                  },
+                },
+              },
+            },
+          }
+        : undefined,
+    });
   },
   list: (args: {
     where?: Record<string, unknown>;

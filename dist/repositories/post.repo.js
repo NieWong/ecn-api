@@ -5,6 +5,12 @@ const prisma_1 = require("../db/prisma");
 const postInclude = {
     author: true,
     categories: { include: { category: true } },
+    images: {
+        include: {
+            file: true,
+        },
+        orderBy: { sort: "asc" },
+    },
     approvedBy: {
         select: {
             id: true,
@@ -63,11 +69,18 @@ exports.postRepo = {
                         },
                     }
                     : undefined,
+                images: data.attachmentFileIds
+                    ? {
+                        createMany: {
+                            data: data.attachmentFileIds.map((fileId, index) => ({ fileId, sort: index })),
+                        },
+                    }
+                    : undefined,
             },
             include: postInclude,
         });
     },
-    update: async (id, data, categoryIds) => {
+    update: async (id, data, categoryIds, attachmentFileIds) => {
         const updateData = {
             title: data.title,
             slug: data.slug,
@@ -98,6 +111,14 @@ exports.postRepo = {
             if (categoryIds.length > 0) {
                 await prisma_1.prisma.postCategory.createMany({
                     data: categoryIds.map((categoryId) => ({ postId: id, categoryId })),
+                });
+            }
+        }
+        if (attachmentFileIds !== undefined) {
+            await prisma_1.prisma.postImage.deleteMany({ where: { postId: id } });
+            if (attachmentFileIds.length > 0) {
+                await prisma_1.prisma.postImage.createMany({
+                    data: attachmentFileIds.map((fileId, index) => ({ postId: id, fileId, sort: index })),
                 });
             }
         }

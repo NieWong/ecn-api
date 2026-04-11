@@ -15,6 +15,62 @@ import type { AuthUser } from "../types/auth";
 import { AppError } from "../utils/errors";
 import { inferFileKind } from "../utils/fileKind";
 
+const canAccessMemberOnlyContent = (actor?: AuthUser | null) => {
+  if (!actor) return false;
+  return actor.role === "ADMIN" || actor.isAccountant || actor.membershipLevel !== "REGULAR_USER";
+};
+
+const hasLinkedMemberOnlyPost = (
+  file: {
+    postImages?: Array<{
+      post: {
+        visibility: "PUBLIC" | "PRIVATE";
+        status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+        isApproved: boolean;
+      };
+    }>;
+  }
+) => {
+  return (
+    file.postImages?.some(
+      ({ post }) => post.visibility === "PRIVATE" && post.status === "PUBLISHED" && post.isApproved
+    ) ?? false
+  );
+};
+
+const assertFileReadable = (
+  file: {
+    ownerId: string;
+    visibility: "PUBLIC" | "PRIVATE";
+    postImages?: Array<{
+      post: {
+        visibility: "PUBLIC" | "PRIVATE";
+        status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+        isApproved: boolean;
+      };
+    }>;
+  },
+  actor?: AuthUser | null
+) => {
+  if (file.visibility === "PUBLIC") {
+    return;
+  }
+
+  if (!actor) {
+    throw new AppError("Forbidden", 403);
+  }
+
+  if (actor.role === "ADMIN" || file.ownerId === actor.id) {
+    return;
+  }
+
+  if (canAccessMemberOnlyContent(actor) && hasLinkedMemberOnlyPost(file)) {
+    return;
+  }
+
+  throw new AppError("Forbidden", 403);
+};
+
 const ensureUploadDir = async () => {
   await fs.promises.mkdir(env.uploadDir, { recursive: true });
 };
@@ -49,6 +105,16 @@ export const fileService = {
       width: null,
       height: null,
     });
+  },
+  getAccessibleById: async (id: string, actor?: AuthUser | null) => {
+    const file = await fileRepo.findById(id, { includePostImages: true });
+    if (!file) {
+      throw new AppError("File not found", 404);
+    }
+
+    assertFileReadable(file, actor);
+
+    return file;
   },
   delete: async (id: string, actor: AuthUser) => {
     const file = await fileRepo.findById(id);

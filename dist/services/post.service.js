@@ -17,6 +17,31 @@ const assertPostAccess = (post, actor) => {
         throw new errors_1.AppError("Forbidden", 403);
     }
 };
+const canCreateMemberPost = (actor) => {
+    return actor.role === "ADMIN" || actor.isAccountant || actor.membershipLevel !== "REGULAR_USER";
+};
+const assertCanCreatePost = (actor) => {
+    if (!canCreateMemberPost(actor)) {
+        throw new errors_1.AppError("Only members can create posts", 403);
+    }
+};
+const validateAttachmentOwnership = async (attachmentFileIds, actor) => {
+    if (!attachmentFileIds || attachmentFileIds.length === 0) {
+        return [];
+    }
+    const uniqueFileIds = Array.from(new Set(attachmentFileIds));
+    const files = await file_repo_1.fileRepo.list({ where: { id: { in: uniqueFileIds } } });
+    if (files.length !== uniqueFileIds.length) {
+        throw new errors_1.AppError("One or more attachment files are invalid", 400);
+    }
+    if (actor.role !== "ADMIN") {
+        const hasForeignFile = files.some((file) => file.ownerId !== actor.id);
+        if (hasForeignFile) {
+            throw new errors_1.AppError("Forbidden", 403);
+        }
+    }
+    return uniqueFileIds;
+};
 exports.postService = {
     list: () => post_repo_1.postRepo.list(),
     // List posts pending approval (admin only)
@@ -34,6 +59,7 @@ exports.postService = {
         return post;
     },
     create: async (data) => {
+        assertCanCreatePost(data.actor);
         const generatedFromTitle = (0, slug_1.toSlug)(data.title);
         const requestedSlug = data.slug ? (0, slug_1.toSlug)(data.slug) : "";
         const slug = requestedSlug || generatedFromTitle || `post-${Date.now()}`;
@@ -49,6 +75,7 @@ exports.postService = {
             throw new errors_1.AppError("One or more categories are invalid", 400);
         }
         const normalizedCategoryIds = (0, contentType_1.normalizeCategoryIdsByContentType)(uniqueCategoryIds, categoryRows, data.contentType);
+        const attachmentFileIds = await validateAttachmentOwnership(data.attachmentFileIds, data.actor);
         const post = await post_repo_1.postRepo.create({
             title: data.title,
             slug,
@@ -60,6 +87,7 @@ exports.postService = {
             authorId: data.authorId,
             categoryIds: normalizedCategoryIds,
             coverImagePath: data.coverImagePath,
+            attachmentFileIds,
         });
         if (post.status === "PUBLISHED") {
             await notification_service_1.notificationService.notifyArticleSubmitted(post.id, post.title, data.authorId);
@@ -100,6 +128,7 @@ exports.postService = {
             }
             normalizedCategoryIds = (0, contentType_1.normalizeCategoryIdsByContentType)(uniqueCategoryIds, categoryRows, data.contentType);
         }
+        const attachmentFileIds = await validateAttachmentOwnership(data.attachmentFileIds, actor);
         const nextStatus = data.status ?? post.status;
         const shouldSubmitForReview = actor.role !== "ADMIN" && nextStatus === "PUBLISHED";
         if (shouldSubmitForReview) {
@@ -111,7 +140,7 @@ exports.postService = {
         if (actor.role === "ADMIN" && data.adminComment && data.adminComment !== post.adminComment) {
             await notification_service_1.notificationService.notifyArticleCommented(post.id, post.title, post.authorId, data.adminComment);
         }
-        const updatedPost = await post_repo_1.postRepo.update(id, data, normalizedCategoryIds);
+        const updatedPost = await post_repo_1.postRepo.update(id, data, normalizedCategoryIds, data.attachmentFileIds === undefined ? undefined : attachmentFileIds);
         if (shouldSubmitForReview &&
             (post.status !== "PUBLISHED" || post.isApproved)) {
             await notification_service_1.notificationService.notifyArticleSubmitted(post.id, updatedPost.title, post.authorId);

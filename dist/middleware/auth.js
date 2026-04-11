@@ -7,7 +7,8 @@ exports.requireRole = exports.requireAuth = exports.authenticate = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const env_1 = require("../config/env");
 const errors_1 = require("../utils/errors");
-const authenticate = (req, _res, next) => {
+const prisma_1 = require("../db/prisma");
+const authenticate = async (req, _res, next) => {
     const header = req.headers["authorization"];
     if (!header || !header.startsWith("Bearer ")) {
         return next();
@@ -15,15 +16,29 @@ const authenticate = (req, _res, next) => {
     const token = header.slice("Bearer ".length).trim();
     try {
         const payload = jsonwebtoken_1.default.verify(token, env_1.env.jwtSecret);
-        if (!payload.sub || !payload.email || !payload.role) {
+        if (!payload.sub) {
+            return next();
+        }
+        const user = await prisma_1.prisma.user.findUnique({
+            where: { id: String(payload.sub) },
+            select: {
+                id: true,
+                email: true,
+                role: true,
+                membershipLevel: true,
+                isAccountant: true,
+                isActive: true,
+            },
+        });
+        if (!user || !user.isActive) {
             return next();
         }
         req.user = {
-            id: String(payload.sub),
-            email: String(payload.email),
-            role: payload.role,
-            membershipLevel: payload.membershipLevel ?? "REGULAR_USER",
-            isAccountant: Boolean(payload.isAccountant),
+            id: user.id,
+            email: user.email,
+            role: user.role,
+            membershipLevel: user.membershipLevel,
+            isAccountant: user.isAccountant,
         };
         return next();
     }

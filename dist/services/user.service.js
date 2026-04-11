@@ -119,6 +119,22 @@ exports.userService = {
         }
         return user_repo_1.userRepo.update(userId, { isAccountant });
     },
+    // Admin: Allow user to set a new password (for forgot password requests)
+    allowPasswordReset: async (userId, actor) => {
+        if (actor.role !== "ADMIN") {
+            throw new errors_1.AppError("Forbidden", 403);
+        }
+        const user = await user_repo_1.userRepo.findById(userId);
+        if (!user) {
+            throw new errors_1.AppError("User not found", 404);
+        }
+        const updatedUser = await user_repo_1.userRepo.update(userId, { password: null });
+        await notification_service_1.notificationService.notifySystem(userId, "Password Reset Approved", "Admin approved your password reset request. Please set a new password from the set password page.", {
+            kind: "PASSWORD_RESET_APPROVED",
+            email: user.email,
+        });
+        return updatedUser;
+    },
     // User: Get their own profile
     getProfile: async (userId, actor) => {
         if (actor.id !== userId && actor.role !== "ADMIN") {
