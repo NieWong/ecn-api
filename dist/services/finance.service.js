@@ -38,27 +38,10 @@ const normalizeDate = (value) => {
         return value;
     return new Date(value);
 };
-const mergeScopedWhere = (base, actorId) => {
-    const actorScope = [{ managerId: actorId }, { createdById: actorId }];
-    const andFromBase = base && Array.isArray(base.AND)
-        ? (base.AND ?? [])
-        : base
-            ? [base]
-            : [];
-    return {
-        AND: [...andFromBase, { OR: actorScope }],
-    };
-};
 exports.financeService = {
     list: (actor, args) => {
         if (!canViewFinance(actor)) {
             throw new errors_1.AppError("Finance section is only for members", 403);
-        }
-        if (!canManageFinance(actor)) {
-            return finance_repo_1.financeRepo.list({
-                ...args,
-                where: mergeScopedWhere(args?.where, actor.id),
-            });
         }
         return finance_repo_1.financeRepo.list(args);
     },
@@ -129,9 +112,6 @@ exports.financeService = {
     summary: (actor, where) => {
         if (!canViewFinance(actor)) {
             throw new errors_1.AppError("Finance section is only for members", 403);
-        }
-        if (!canManageFinance(actor)) {
-            return finance_repo_1.financeRepo.summary(mergeScopedWhere(where, actor.id));
         }
         return finance_repo_1.financeRepo.summary(where);
     },

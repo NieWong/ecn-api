@@ -19,6 +19,19 @@ const financeInclude = {
 
 const financeDelegate = (prisma as any).financeEntry;
 
+const withActiveFinanceOnly = (where?: Record<string, unknown>) => {
+  const andFromWhere =
+    where && Array.isArray((where as { AND?: unknown }).AND)
+      ? (((where as { AND?: unknown }).AND as Record<string, unknown>[]) ?? [])
+      : where
+      ? [where]
+      : [];
+
+  return {
+    AND: [...andFromWhere, { status: { not: "CANCELLED" } }],
+  };
+};
+
 export const financeRepo = {
   list: (args?: {
     where?: Record<string, unknown>;
@@ -57,17 +70,19 @@ export const financeRepo = {
     return financeDelegate.delete({ where: { id } });
   },
   summary: async (where?: Record<string, unknown>) => {
+    const activeWhere = withActiveFinanceOnly(where);
+
     const [income, expense, budget] = await Promise.all([
       financeDelegate.aggregate({
-        where: { ...where, type: "INCOME" },
+        where: { AND: [activeWhere, { type: "INCOME" }] },
         _sum: { amount: true },
       }),
       financeDelegate.aggregate({
-        where: { ...where, type: "EXPENSE" },
+        where: { AND: [activeWhere, { type: "EXPENSE" }] },
         _sum: { amount: true },
       }),
       financeDelegate.aggregate({
-        where: { ...where, type: "BUDGET" },
+        where: { AND: [activeWhere, { type: "BUDGET" }] },
         _sum: { amount: true },
       }),
     ]);
